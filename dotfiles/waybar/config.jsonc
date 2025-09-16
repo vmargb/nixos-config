@@ -1,0 +1,33 @@
+{
+  "layer": "top",
+  "position": "top",
+  "modules-left": ["workspaces"],
+  "modules-center": ["clock"],
+  "modules-right": ["pulseaudio", "network", "battery", "tray"],
+
+  "clock": {
+    "format": "{:%a %b %d  %H:%M}"
+  },
+
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-muted": " muted",
+    "on-click": "pavucontrol",
+    "format-icons": {
+      "default": ["", "", ""]
+    }
+  },
+
+  "network": {
+    "format-wifi": "  {essid}",
+    "format-ethernet": " {ifname}",
+    "tooltip": true
+  },
+
+  "battery": {
+    "format": "{capacity}% {icon}",
+    "format-icons": ["", "", "", "", ""],
+    "interval": 30
+  }
+}
+

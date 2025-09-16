@@ -7,21 +7,21 @@
   services.openssh.enable = true;
   networking.networkmanager.enable = true;
 
-  # Audio (PipeWire)
+  # audio (PipeWire)
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
-    pulse.enable = true;
+    pulse.enable = true; # pulseaudio
     jack.enable = true;
   };
 
-  # Desktop basics
+  # basics
   services.xserver.enable = true;
   services.libinput.enable = true;
   hardware.opengl.enable = true;
 
-  # Fonts
+  # fonts
   fonts.packages = with pkgs; [
     (nerdfonts.override {
       fonts = [ "FiraCode" "Iosevka" "JetBrainsMono" "GeistMono" ];
@@ -43,19 +43,24 @@
     };
   };
 
-  # User account
+  # user account
   users.users.vmargb = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
-    shell = pkgs.fish; # make fish default shell at login
+    shell = pkgs.fish; # make fish default shell at LOGIN
   };
 
-  # Shared system packages (appendable)
+  # shared system packages (appendable)
   environment.systemPackages = lib.mkAfter (with pkgs; [
     git
     wget
     curl
-    btop
+    btop # task manager
+
+    # media controls
+    brightnessctl # brightness control
+    playerctl
+    libnotify # media notifications
   ]);
 }
 

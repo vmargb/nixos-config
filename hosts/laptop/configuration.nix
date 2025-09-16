@@ -10,6 +10,7 @@
 
   # Laptop-specific packages
   environment.systemPackages = with pkgs; [
+    neovim
   ];
 
   services.xserver.displayManager.defaultSession = "niri";

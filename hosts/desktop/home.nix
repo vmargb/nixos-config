@@ -5,8 +5,6 @@
     ../../common/modules
   ];
 
-  myDefaults.enableImports = true;
-
   home.packages = with pkgs; [
     mpv
     syncthing
@@ -17,5 +15,7 @@
     glow
   ];
 
+  myDefaults.enableImports = true;
+  myShell.default = "fish";
 }
 

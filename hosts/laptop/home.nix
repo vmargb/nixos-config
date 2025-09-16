@@ -5,10 +5,10 @@
     ../../common/modules
   ];
 
-  myDefaults.enableImports = true;
-
   home.packages = with pkgs; [
   ];
 
+  myDefaults.enableImports = true;
+  myShell.default = "fish";
 }
 
