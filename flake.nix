@@ -2,7 +2,7 @@
   description = "vmargb's NixOS + Home Manager config";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     stylix.url = "github:nix-community/stylix";
@@ -29,7 +29,7 @@
       nixosConfigurations = {
         laptop  = mkHost "laptop"  "x86_64-linux";
         desktop = mkHost "desktop" "x86_64-linux"; # "aarch64-darwin" for macbooks
-        server = mkHost "server" "aarch64-linux"; # ARM/pi
+        server = mkHost "server" "aarch64-linux"; # ARM
       };
     };
 }

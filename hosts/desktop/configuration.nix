@@ -13,6 +13,13 @@
     neovim
   ];
 
+  # stylix overrides
+  #stylix = {
+    #image = "/home/vmargb/.wallpapers/gruvbox.png";
+    #base16Scheme = "gruvbox-dark"; #
+    #fonts.monospace = "JetBrainsMono";
+  #};
+
   services.xserver.displayManager.defaultSession = "niri";
 }
 

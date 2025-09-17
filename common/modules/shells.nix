@@ -26,7 +26,7 @@
 
     # set the selected shell
     home.sessionVariables = {
-      SHELL = pkgs.${config.myShell.default};
+      SHELL = "${pkgs.${config.myShell.default}}/bin/${config.myShell.default}";
     };
   };
 }

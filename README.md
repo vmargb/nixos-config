@@ -1,0 +1,95 @@
+
+# 🗺️ A Bird's-eye view
+
+A modular NixOS and Home Manager configuration built with flakes, designed for clarity and reproducibility across multiple machines. This setup embraces a declarative approach, with a clean separation between host-specific settings and shared functionality.
+
+```
+nix-config/
+├─ flake.nix                     ← The conductor, orchestrates everything
+├─ common/
+│  ├─ system-base.nix             ← The rulebook everyone has to follow
+│  └─ modules/
+│     ├─ default.nix              ← The rulebook you can choose to follow
+│     ├─ emacs.nix                ← Spacemacs? Doom? Vanilla? Your choice
+│     ├─ foot.nix                 ← Foo + term => foot, (not feet)
+│     ├─ shells.nix               ← Bash, zsh, fish? one-stop shop to have them all
+│     ├─ niri.nix                 ← PaperWM but better
+│     ├─ waybar.nix               ← A status bar you will never look at
+│     ├─ rofi.nix                 ← Telescope.nvim but for your apps
+│     ├─ dunst.nix                ← Popups that politely ruin your concentration
+│     └─ greetd.nix               ← A no-nonsense door greeter
+├─ dotfiles/                      ← Raw configs (symlinked)
+│  ├─ emacs/config.org
+│  ├─ fish/config.fish
+│  ├─ zsh/.zshrc
+│  ├─ starship/starship.toml
+│  ├─ niri/config.kdl
+└─ hosts/                         ← Per-machine personalities
+   ├─ laptop/
+   │  ├─ configuration.nix        ← System-level config
+   │  └─ home.nix                 ← User-level config
+   ├─ desktop/
+   │  ├─ configuration.nix
+   │  └─ home.nix
+   └─ server/
+      ├─ configuration.nix
+      └─ home.nix
+```
+
+## Architecture
+
+### Core Components
+- **Flake Foundation**: The `flake.nix` serves as the entry point, coordinating between NixOS system configurations and Home Manager user environments.
+
+- **Common Configuration**: Shared across all systems:
+  - `system-base.nix`: Universal system packages and settings in `common/`
+  - `default.nix`: Modular user-level configs (Waybar, Rofi, etc.) in `common/modules/`
+  
+  Uses **conditional-logic** to override each option per-host.
+
+- **Host-Specific Profiles**: Isolated configurations for each machine type (laptop, desktop, server) with their own:
+  - `configuration.nix`: System-level settings and `system-base.nix` overrides
+  - `home.nix`: User-level settings and `default.nix` overrides
+
+- **Dotfile Management**: Static configuration files are stored in `dotfiles/` and symlinked in `default.nix`.
+
+## Usage
+
+### Building for a Specific Host
+```bash
+# Build and switch to the laptop configuration
+nixos-rebuild switch --flake ~/nixos-config#laptop
+
+# Or build for desktop
+nixos-rebuild switch --flake ~/nixos-config#desktop
+```
+
+### Update Dependencies
+```bash
+nix flake update
+```
+
+## Expanding
+
+### Adding a New Host
+1. Create a directory under `hosts/` with `configuration.nix` and `home.nix`
+2. Import necessary common modules in the configuration files
+3. Add the host to `flake.nix` with: `{host} = mkHost "{host}" "x86_64-linux";`
+
+### Creating New Modules
+1. Add module definition in `common/modules/`
+2. Either import it in `common/modules/default.nix` or `home.nix`
+
+## Design Philosophy
+
+This configuration follows a "separate by concern" approach:
+- Base functionality is shared through common modules
+- Machine-specific differences are isolated in host directories
+
+### Dotfiles
+You'll notice that some dotfiles are configured with Nix dynamically,
+while others are static configurations symlinked into `dotfiles/`
+
+These are intentionally split into two parts:
+- **Dynamic:** Modules that require runtime changes (Stylix theming, host-specific tweaks)
+- **Static:** Modules that work everywhere (editor configs, scripts, vanilla settings)
