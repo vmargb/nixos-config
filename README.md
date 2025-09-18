@@ -36,6 +36,23 @@ nix-config/
       └─ home.nix
 ```
 
+## 🛠️ Installation
+
+For complete, step-by-step NixOS installation (partitioning, formatting, disk encryption etc), see my guide on Notion: [NixOS installation guide](https://www.notion.so/Installation-part-1-2401ea842a24801397f9f70795379bc2?source=copy_link)
+
+```bash
+git clone https://github.com/vmargb/nixos-config.git
+cd nixos-config
+sudo nixos-rebuild switch --flake .#hostname
+```
+or
+```bash
+sudo nixos-rebuild switch --flake github:vmargb/nixos-config#hostname
+```
+
+Remember to adjust `hostname` to match one of the hosts(or create your own)
+
+
 ## Architecture
 
 ### Core Components
@@ -84,7 +101,7 @@ nix flake update
 
 ## Design Philosophy
 
-### Dotfiles
+### 📁 Dotfiles
 You'll notice that some dotfiles are configured with Nix dynamically,
 while others are static configurations symlinked into `dotfiles/`
 
