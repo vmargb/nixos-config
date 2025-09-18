@@ -27,16 +27,7 @@
     ./rofi.nix
     ./dunst.nix
     ./greetd.nix
+    ./dotfiles.nix
   ];
-
-  # symlinks (always applied, independent of imports)
-  xdg.configFile = {
-    "fish/config.fish".source     = ../../dotfiles/fish/config.fish;
-    "zsh/.zshrc".source           = ../../dotfiles/zsh/.zshrc;
-    "starship/starship.toml".source = ../../dotfiles/starship/starship.toml;
-    "niri/config.kdl".source      = ../../dotfiles/niri/config.kdl;
-  };
-
-  home.file.".emacs.d/config.org".source = ../../dotfiles/emacs/config.org;
 }
 

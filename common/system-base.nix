@@ -24,7 +24,7 @@
   # fonts
   fonts.packages = with pkgs; [
     (nerdfonts.override {
-      fonts = [ "FiraCode" "Iosevka" "JetBrainsMono" "GeistMono" ];
+      fonts = [ "FiraCode" "Iosevka" "Lilex" "GeistMono" ];
     })
     inter
     noto-fonts

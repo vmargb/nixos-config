@@ -1,7 +1,7 @@
 
 # 🗺️ A Bird's-eye view
 
-A modular NixOS and Home Manager configuration built with flakes, designed for clarity and reproducibility across multiple machines. This setup embraces a declarative approach, with a clean separation between host-specific settings and shared functionality.
+A modular NixOS, Flakes and Home Manager configuration designed for reproducibility across multiple machines. This setup embraces a declarative approach, with a clean separation between host-specific settings and shared functionality.
 
 ```
 nix-config/
@@ -18,7 +18,7 @@ nix-config/
 │     ├─ rofi.nix                 ← Telescope.nvim but for your apps
 │     ├─ dunst.nix                ← Popups that politely ruin your concentration
 │     └─ greetd.nix               ← A no-nonsense door greeter
-├─ dotfiles/                      ← Raw configs (symlinked)
+├─ dotfiles/                      ← Raw configs (symlinked by dotfiles.nix)
 │  ├─ emacs/config.org
 │  ├─ fish/config.fish
 │  ├─ zsh/.zshrc
@@ -77,14 +77,12 @@ nix flake update
 3. Add the host to `flake.nix` with: `{host} = mkHost "{host}" "x86_64-linux";`
 
 ### Creating New Modules
-1. Add module definition in `common/modules/`
+1. Add Nix module in `common/modules/`
 2. Either import it in `common/modules/default.nix` or `home.nix`
 
-## Design Philosophy
+**Note:** If it's a static module, add the config to `dotfiles/`, `dotfiles.nix` will automatically handle the symlink for you.
 
-This configuration follows a "separate by concern" approach:
-- Base functionality is shared through common modules
-- Machine-specific differences are isolated in host directories
+## Design Philosophy
 
 ### Dotfiles
 You'll notice that some dotfiles are configured with Nix dynamically,
