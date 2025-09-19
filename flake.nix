@@ -22,13 +22,17 @@
           inherit system;
           modules = sharedModules ++ [
             ./hosts/${name}/configuration.nix
-            { home-manager.users.vmargb = import ./hosts/${name}/home.nix; }
+            {
+              home-manager.useGlobalPkgs = true; # avoid pkg duplication
+              home-manager.useUserPackages = true; # store pkgs in bin
+              home-manager.users.vmargb = import ./hosts/${name}/home.nix;
+            }
           ];
         };
     in {
       nixosConfigurations = {
         laptop  = mkHost "laptop"  "x86_64-linux";
-        desktop = mkHost "desktop" "x86_64-linux"; # "aarch64-darwin" for macbooks
+        desktop = mkHost "desktop" "x86_64-linux"; # "aarch64-darwin" for Apple
         server = mkHost "server" "aarch64-linux"; # ARM
       };
     };

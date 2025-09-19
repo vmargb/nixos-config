@@ -5,17 +5,20 @@
     ../../common/modules
   ];
 
+  # host-specific packages
   home.packages = with pkgs; [
     mpv
     syncthing
     zathura
 
-    fd
-    ripgrep
     glow
   ];
 
+  # default overrides
   myDefaults.enableImports = true;
   myShell.default = "fish";
+
+  dev.general.enable = true;
+  dev.android.enable = true;
 }
 

@@ -28,6 +28,7 @@
     ./mako.nix
     ./greetd.nix
     ./dotfiles.nix
+    ./dev/default.nix
   ];
 }
 
