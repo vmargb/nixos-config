@@ -16,7 +16,7 @@ nix-config/
 │     ├─ niri.nix                 ← PaperWM but better
 │     ├─ waybar.nix               ← A status bar you will never look at
 │     ├─ rofi.nix                 ← Telescope.nvim but for your apps
-│     ├─ dunst.nix                ← Popups that politely ruin your concentration
+│     ├─ mako.nix                 ← Popups that politely ruin your concentration
 │     └─ greetd.nix               ← A no-nonsense door greeter
 ├─ dotfiles/                      ← Raw configs (symlinked by dotfiles.nix)
 │  ├─ emacs/config.org

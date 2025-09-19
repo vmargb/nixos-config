@@ -60,7 +60,7 @@
     # media controls
     brightnessctl # brightness control
     playerctl
-    libnotify # media notifications
+    libnotify # media notifications (notify-send)
   ]);
 }
 

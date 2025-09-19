@@ -25,7 +25,7 @@
     ./niri.nix
     ./waybar.nix
     ./rofi.nix
-    ./dunst.nix
+    ./mako.nix
     ./greetd.nix
     ./dotfiles.nix
   ];

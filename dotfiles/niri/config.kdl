@@ -31,14 +31,14 @@ keybinds {
   "9" "workspace 9"
 
 
-  // audio controls (+ dunst)
-  "XF86AudioRaiseVolume" "exec sh -c 'pactl set-sink-volume @DEFAULT_SINK@ +5% && dunstify -u normal -r 9999 -a Volume \"🔊 $(pactl get-sink-volume @DEFAULT_SINK@ | grep -oP \"\\d+%\" | head -1)\"'"
-  "XF86AudioLowerVolume" "exec sh -c 'pactl set-sink-volume @DEFAULT_SINK@ -5% && dunstify -u normal -r 9999 -a Volume \"🔉 $(pactl get-sink-volume @DEFAULT_SINK@ | grep -oP \"\\d+%\" | head -1)\"'"
-  "XF86AudioMute"        "exec sh -c 'pactl set-sink-mute @DEFAULT_SINK@ toggle && dunstify -u normal -r 9999 -a Volume \"🔇 $(pactl get-sink-mute @DEFAULT_SINK@ | grep -q yes && echo Muted || echo Unmuted)\"'"
+  // audio controls (+ mako via notify-send)
+  "XF86AudioRaiseVolume" "exec sh -c 'pactl set-sink-volume @DEFAULT_SINK@ +5% && notify-send -h string:x-canonical-private-synchronous:volume -a Volume \"🔊 $(pactl get-sink-volume @DEFAULT_SINK@ | grep -oP \"\\d+%\" | head -1)\"'"
+  "XF86AudioLowerVolume" "exec sh -c 'pactl set-sink-volume @DEFAULT_SINK@ -5% && notify-send -h string:x-canonical-private-synchronous:volume -a Volume \"🔉 $(pactl get-sink-volume @DEFAULT_SINK@ | grep -oP \"\\d+%\" | head -1)\"'"
+  "XF86AudioMute"        "exec sh -c 'pactl set-sink-mute @DEFAULT_SINK@ toggle && notify-send -h string:x-canonical-private-synchronous:volume -a Volume \"🔇 $(pactl get-sink-mute @DEFAULT_SINK@ | grep -q yes && echo Muted || echo Unmuted)\"'"
 
-  // brightness controls (+ dunst)
-  "XF86MonBrightnessUp"   "exec sh -c 'brightnessctl set +5% && dunstify -u normal -r 9998 -a Brightness \"☀️ $(brightnessctl g | awk -v max=$(brightnessctl m) \"{printf \"%d%%\", \$1*100/max}\")\"'"
-  "XF86MonBrightnessDown" "exec sh -c 'brightnessctl set 5%- && dunstify -u normal -r 9998 -a Brightness \"🌙 $(brightnessctl g | awk -v max=$(brightnessctl m) \"{printf \"%d%%\", \$1*100/max}\")\"'"
+  // brightness controls (+ mako via notify-send)
+  "XF86MonBrightnessUp"   "exec sh -c 'brightnessctl set +5% && notify-send -h string:x-canonical-private-synchronous:brightness -a Brightness \"☀️ $(brightnessctl g | awk -v max=$(brightnessctl m) \"{printf \"%d%%\", \$1*100/max}\")\"'"
+  "XF86MonBrightnessDown" "exec sh -c 'brightnessctl set 5%- && notify-send -h string:x-canonical-private-synchronous:brightness -a Brightness \"🌙 $(brightnessctl g | awk -v max=$(brightnessctl m) \"{printf \"%d%%\", \$1*100/max}\")\"'"
 
   // media playback
   "XF86AudioPlay" "exec playerctl play-pause"
