@@ -1,7 +1,7 @@
 
 # 🗺️ A Bird's-eye view
 
-A modular NixOS, Flakes and Home Manager configuration designed for reproducibility across multiple machines. This setup embraces a declarative approach, with a clean separation between host-specific settings and shared functionality.
+A modular NixOS, Flakes and Home Manager config designed for reproducibility across multiple machines. This setup is preprepared with Niri, Cosmic and useful dev tools as well some other opinionated choices that I personally use. However, this system is completely [Expandable](#expanding) without adding complexity.
 
 ```
 nix-config/
@@ -12,12 +12,14 @@ nix-config/
 │     ├─ default.nix              ← The rulebook you can choose to follow
 │     ├─ emacs.nix                ← Spacemacs? Doom? Vanilla? Your choice
 │     ├─ foot.nix                 ← Foo + term => foot, (not feet)
-│     ├─ shells.nix               ← Bash, zsh, fish? one-stop shop to have them all
+│     ├─ shells.nix               ← Bash, zsh, fish? one-stop to have them all
+│     ├─ cosmic.nix               ← Gnome but better
 │     ├─ niri.nix                 ← PaperWM but better
 │     ├─ waybar.nix               ← A status bar you will never look at
 │     ├─ rofi.nix                 ← Telescope.nvim but for your apps
 │     ├─ mako.nix                 ← Popups that politely ruin your concentration
-│     └─ greetd.nix               ← A no-nonsense door greeter
+│     ├─ greetd.nix               ← A no-nonsense TUI greeter
+│     └─ dev/                     ← Web-dev, Android, 
 ├─ dotfiles/                      ← Raw configs (symlinked by dotfiles.nix)
 │  ├─ emacs/config.org
 │  ├─ fish/config.fish
@@ -95,7 +97,7 @@ nix flake update
 
 ### Creating New Modules
 1. Add Nix module in `common/modules/`
-2. Either import it in `common/modules/default.nix` or `home.nix`
+2. Either import it in `common/modules/default.nix` or directly into `home.nix`
 
 **Note:** If it's a static module, add the config to `dotfiles/`, `dotfiles.nix` will automatically handle the symlink for you.
 

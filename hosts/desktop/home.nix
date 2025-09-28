@@ -18,6 +18,9 @@
   myDefaults.enableImports = true;
   myShell.default = "fish";
 
+  # wm overrides
+  #myCosmic.enable = true;
+
   dev.general.enable = true;
   dev.android.enable = true;
 }

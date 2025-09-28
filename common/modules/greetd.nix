@@ -15,18 +15,12 @@
         user = "greeter";
       };
 
+      # only niri which is the main, sessions are appended
+      # if other de's are enabled, such as cosmic.nix
       sessions = [
         {
           name = "niri";
           command = "${pkgs.niri}/bin/niri";
-        }
-        {
-          name = "sway";
-          command = "${pkgs.sway}/bin/sway";
-        }
-        {
-          name = "kde";
-          command = "${pkgs.plasma-workspace}/bin/startplasma-wayland";
         }
       ];
     };

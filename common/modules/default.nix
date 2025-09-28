@@ -6,13 +6,14 @@
   home.homeDirectory = "/home/vmargb";
 
   # packages for all hosts (appendable)
-  home.packages = lib.mkAfter (with pkgs; [
+  home.packages = with pkgs; [
     fastfetch
     wl-clipboard # clipboard to terminal
     grim # screenshots
     slurp # region-based screenshots
     tree # tree hierarchy
-  ]);
+    libnotify # media notifications (notify-send)
+  ];
 
   # toggle module imports below
   options.myDefaults.enableImports = lib.mkEnableOption "Enable standard module imports";
@@ -29,6 +30,7 @@
     ./greetd.nix
     ./dotfiles.nix
     ./dev/default.nix
+    ./cosmic.nix
   ];
 }
 

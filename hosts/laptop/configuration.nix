@@ -20,6 +20,8 @@
     # fonts.monospace = "JetBrainsMono";
   #};
 
+  networking.networkmanager.wifi.powersave = true; # power saving for laptop only
+
   services.xserver.displayManager.defaultSession = "niri";
 }
 

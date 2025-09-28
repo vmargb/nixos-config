@@ -5,7 +5,25 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   services.openssh.enable = true;
-  networking.networkmanager.enable = true;
+  networking.networkmanager.enable = true; # enables wifi and network
+  # sudo nmtui (to connect to wifi)
+  # Activate a connection -> select your connection -> password
+  
+  # disable NetworkManager's internal DNS resolution
+  networking.networkmanager.dns = "none";
+
+  # these options are unnecessary when managing DNS ourselves
+  networking.useDHCP = false;
+  networking.dhcpcd.enable = false;
+
+  # Configure DNS servers manually (this example uses Cloudflare and Google DNS)
+  # IPv6 DNS servers can be used here as well.
+  networking.nameservers = [
+    "1.1.1.1"
+    "1.0.0.1"
+    "8.8.8.8"
+    "8.8.4.4"
+  ];
 
   # audio (PipeWire)
   services.pipewire = {
@@ -47,11 +65,11 @@
   users.users.vmargb = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
-    shell = pkgs.fish; # make fish default shell at LOGIN
+    shell = pkgs.bash; # make bash default shell at LOGIN
   };
 
-  # shared system packages (appendable)
-  environment.systemPackages = lib.mkAfter (with pkgs; [
+  # shared system packages
+  environment.systemPackages = with pkgs; [
     git
     wget
     curl
@@ -60,7 +78,6 @@
     # media controls
     brightnessctl # brightness control
     playerctl
-    libnotify # media notifications (notify-send)
-  ]);
+  ];
 }
 
