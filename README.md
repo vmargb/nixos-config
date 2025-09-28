@@ -19,7 +19,7 @@ nix-config/
 │     ├─ rofi.nix                 ← Telescope.nvim but for your apps
 │     ├─ mako.nix                 ← Popups that politely ruin your concentration
 │     ├─ greetd.nix               ← A no-nonsense TUI greeter
-│     └─ dev/                     ← Web-dev, Android, 
+│     └─ dev/                     ← Web-dev, Android & all your esoteric langs
 ├─ dotfiles/                      ← Raw configs (symlinked by dotfiles.nix)
 │  ├─ emacs/config.org
 │  ├─ fish/config.fish
