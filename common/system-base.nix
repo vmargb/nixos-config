@@ -1,10 +1,41 @@
-{ config, pkgs, ... }:
+{ config, pkgs, ... }:  # Base system config - things you're never going to change
 
-{ # Base system config - things you're never going to change
+{
+  # shared system packages
+  environment.systemPackages = with pkgs; [
+    # terminal essentials
+    git
+    wget
+    curl
+    btop # task manager
+
+    # media controls
+    brightnessctl # brightness control
+    playerctl # media player control
+
+    # widgets
+    pamixer # volume up and down
+    pavucontrol # audio GUI
+    acpi # battery info
+    networkmanagerapplet # nm-connection-editor
+
+    # sync and sharing
+    tmux
+    openssh
+    rsync
+  ];
+
   time.timeZone = "BST";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  services.openssh.enable = true;
+  # enable and configure SSH
+  services.openssh = {
+    enable = true;
+    permitRootLogin = "no";          # disable root login via SSH
+    passwordAuthentication = false;  # disable password login (use SSH keys only)
+    port = 2222;                     # SSH server port from default 22 to 2222
+  };
+
   networking.networkmanager.enable = true; # enables wifi and network
   # sudo nmtui (to connect to wifi)
   # Activate a connection -> select your connection -> password
@@ -67,17 +98,5 @@
     extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
     shell = pkgs.bash; # make bash default shell at LOGIN
   };
-
-  # shared system packages
-  environment.systemPackages = with pkgs; [
-    git
-    wget
-    curl
-    btop # task manager
-
-    # media controls
-    brightnessctl # brightness control
-    playerctl
-  ];
 }
 

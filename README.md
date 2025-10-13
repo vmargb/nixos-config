@@ -70,7 +70,7 @@ Remember to adjust `hostname` to match one of the hosts(or create your own)
   - `configuration.nix`: System-level settings and `system-base.nix` overrides
   - `home.nix`: User-level settings and `default.nix` overrides
 
-- **Dotfile Management**: Static configuration files are stored in `dotfiles/` and symlinked in `default.nix`.
+- **Dotfile Management**: Static configurations are stored in `dotfiles/` and symlinked by `dotfiles.nix`.
 
 ## Usage
 

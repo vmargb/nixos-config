@@ -26,6 +26,7 @@
               home-manager.useGlobalPkgs = true; # avoid pkg duplication
               home-manager.useUserPackages = true; # store pkgs in bin
               home-manager.users.vmargb = import ./hosts/${name}/home.nix;
+              home-manager.users.vmargb.backupFileExtension = "hm-bak";
             }
           ];
         };

@@ -19,7 +19,5 @@
     #base16Scheme = "gruvbox-dark"; #
     #fonts.monospace = "JetBrainsMono";
   #};
-
-  services.xserver.displayManager.defaultSession = "niri";
 }
 

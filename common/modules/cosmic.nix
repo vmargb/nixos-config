@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  options.myCosmic.enable = lib.mkEnableOption "Enable COSMIC Desktop Environment";
+  options.myCosmic.enable = lib.mkEnableOption "Enable COSMIC DE";
 
   config = lib.mkIf config.myCosmic.enable { # apply only if the option is enabled
 

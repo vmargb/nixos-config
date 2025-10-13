@@ -10,7 +10,8 @@
             --time \
             --asterisks \
             --user-menu \
-            --sessions
+            --sessions \
+            --default-session niri
         '';
         user = "greeter";
       };
