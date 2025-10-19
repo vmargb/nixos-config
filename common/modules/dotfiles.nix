@@ -1,7 +1,7 @@
 { config, lib, ... }:
 
 let
-  dotfiles = ../../dotfiles;
+  dotfiles = "${config.home.homeDirectory}/nixos-config/dotfiles";
 
   # helper function to get full path to each dotfile
   linkDir = path: {
@@ -21,11 +21,6 @@ let
     }) dirs);
 
 in {
-  # symlink everything inside dotfiles/ into ~/.config/{subdir}
-  xdg.configFile = configDirs;
-
-  # Special case: emacs should go to ~/.emacs.d instead of ~/.config/emacs
-  home.file.".emacs.d".source =
-    config.lib.file.mkOutOfStoreSymlink "${dotfiles}/emacs";
+  xdg.configFile = configDirs; # symlink everything inside dotfiles/ into ~/.config/{subdir}
 }
 

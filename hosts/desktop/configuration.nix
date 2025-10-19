@@ -10,7 +10,9 @@
 
   # Desktop-specific packages
   environment.systemPackages = with pkgs; [
-    neovim
+    xwayland-satellite
+    obs-studio
+    librewolf
   ];
 
   # stylix overrides

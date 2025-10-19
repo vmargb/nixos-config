@@ -8,9 +8,8 @@
   # host-specific packages
   home.packages = with pkgs; [
     mpv
-    syncthing
     zathura
-
+    tealdeer
     glow
   ];
 

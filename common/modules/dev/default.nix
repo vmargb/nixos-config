@@ -5,12 +5,6 @@
 
   config = lib.mkIf config.dev.general.enable {
     home.packages = with pkgs; [
-      # terminal tools
-      git gh curl wget unzip jq yq
-      ripgrep fd fzf bat
-
-      # editors
-      neovim emacs
     ];
   };
 
