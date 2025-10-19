@@ -5,12 +5,12 @@ A modular NixOS, Flakes and Home Manager config designed for reproducibility acr
 
 ```
 nix-config/
-├─ flake.nix                     ← The conductor, orchestrates everything
+├─ flake.nix                      ← Orchestrates everything
 ├─ common/
 │  ├─ system-base.nix             ← The rulebook everyone has to follow
 │  └─ modules/
 │     ├─ default.nix              ← The rulebook you can choose to follow
-│     ├─ emacs.nix                ← Spacemacs? Doom? Vanilla? Your choice
+│     ├─ editors.nix              ← Emacs? Neovim? Zed? Your choice
 │     ├─ foot.nix                 ← Foo + term => foot, (not feet)
 │     ├─ shells.nix               ← Bash, zsh, fish? one-stop to have them all
 │     ├─ cosmic.nix               ← Gnome but better
@@ -26,7 +26,7 @@ nix-config/
 │  ├─ zsh/.zshrc
 │  ├─ starship/starship.toml
 │  ├─ niri/config.kdl
-└─ hosts/                         ← Per-machine personalities
+└─ hosts/                         ← Per-machine overrides
    ├─ laptop/
    │  ├─ configuration.nix        ← System-level config
    │  └─ home.nix                 ← User-level config
@@ -39,8 +39,6 @@ nix-config/
 ```
 
 ## 🛠️ Installation
-
-For complete, step-by-step NixOS installation (partitioning, formatting, disk encryption etc), see my guide on Notion: [NixOS installation guide](https://www.notion.so/Installation-part-1-2401ea842a24801397f9f70795379bc2?source=copy_link)
 
 ```bash
 git clone https://github.com/vmargb/nixos-config.git
@@ -58,7 +56,6 @@ Remember to adjust `hostname` to match one of the hosts(or create your own)
 ## Architecture
 
 ### Core Components
-- **Flake Foundation**: The `flake.nix` serves as the entry point, coordinating between NixOS system configurations and Home Manager user environments.
 
 - **Common Configuration**: Shared across all systems:
   - `system-base.nix`: Universal system packages and settings in `common/`
@@ -109,4 +106,4 @@ while others are static configurations symlinked into `dotfiles/`
 
 These are intentionally split into two parts:
 - **Dynamic:** Modules that require runtime changes (Stylix theming, host-specific tweaks)
-- **Static:** Modules that work everywhere (editor configs, scripts, vanilla settings)
+- **Static:** Modules that are changed more regularly

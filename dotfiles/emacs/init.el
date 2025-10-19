@@ -43,11 +43,14 @@
 (setq make-backup-files nil)
 (setq auto-save-default nil)
 
+(set-face-attribute 'default nil :font "Lilex Nerd Font Mono-14")
+
 ;; fonts and mixed-pitch fonts
-(set-face-attribute 'default nil :font "JetBrains Mono-12")
 (use-package mixed-pitch
-  :hook
-  (text-mode . mixed-pitch-mode)
+  :hook ((text-mode . nil) ;; disable global text-mode hook
+         (org-mode . mixed-pitch-mode)    ;; Enable for Org files
+         (markdown-mode . mixed-pitch-mode) ;; Enable for Markdown files
+         (plain-text-mode . mixed-pitch-mode)) ;; Enable for plain text files
   :custom
   (mixed-pitch-set-height t))
 
@@ -156,7 +159,7 @@
 
   :config
   ;; optionally enable olivetti-mode automatically in text and org modes
-  (add-hook 'text-mode-hook #'olivetti-mode)
+  ;;(add-hook 'text-mode-hook #'olivetti-mode)
   (add-hook 'org-mode-hook #'olivetti-mode)
 
   ;; You may want to enable visual-line-mode for soft line wrapping with Olivetti
@@ -204,12 +207,12 @@
 ;; -----------------
 ;; Treesitter setup
 ;; -----------------
-(use-package treesit-auto
-  :custom
-  (treesit-auto-install 'prompt) ; prompt to install missing grammars
-  :config
-  (treesit-auto-add-to-auto-mode-alist 'all)  ; map all major modes to their tree-sitter versions
-  (global-treesit-auto-mode)) ; enable treesit-auto globally
+;;(use-package treesit-auto
+;;  :custom
+;;  (treesit-auto-install 'prompt) ; prompt to install missing grammars
+;;  :config
+;;  (treesit-auto-add-to-auto-mode-alist 'all)  ; map all major modes to their tree-sitter versions
+;;  (global-treesit-auto-mode)) ; enable treesit-auto globally
 
 
 ;; ---------------------------------------------
@@ -431,6 +434,13 @@
     "b"  '(:ignore t :which-key "buffers")
     "bb" '(consult-buffer :which-key "switch buffer")
     "bd" '(kill-this-buffer :which-key "kill buffer")
+    "bl" '(list-buffers :which-key "list buffers")
+    "bi" '(ibuffer :which-key "ibuffer")
+
+    "m"  '(:ignore t :which-key "bookmarks")
+    "ms" '(bookmark-set :which-key "set bookmark")
+    "mj" '(bookmark-jump :which-key "jump to bookmark")
+    "md" '(bookmark-delete :which-key "delete bookmark")
 
     "s"  '(:ignore t :which-key "search")
     "ss" '(consult-ripgrep :which-key "search project (rg)")
