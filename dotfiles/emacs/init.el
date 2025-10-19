@@ -92,9 +92,23 @@
 ;; More UI/UX improvements
 ;; -----------------------------
 
+;; colour coded delimiters
 (use-package rainbow-delimiters
   :ensure t
   :hook (prog-mode . rainbow-delimiters-mode))
+
+;; intelligent indent-guides
+(use-package highlight-indent-guides
+  :ensure t
+  :hook (prog-mode . highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'column)
+  (setq highlight-indent-guides-responsive 'stack)
+  (set-face-foreground 'highlight-indent-guides-odd-face "#303030") ;; dark gray
+  (set-face-foreground 'highlight-indent-guides-even-face "#505050") ;; light gray
+  (setq highlight-indent-guides-delay 0))
+
+
 
 ;; buffer and non buffer highlighting
 (use-package solaire-mode
