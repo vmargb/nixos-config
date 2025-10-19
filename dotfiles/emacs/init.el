@@ -92,6 +92,10 @@
 ;; More UI/UX improvements
 ;; -----------------------------
 
+(use-package rainbow-delimiters
+  :ensure t
+  :hook (prog-mode . rainbow-delimiters-mode))
+
 ;; buffer and non buffer highlighting
 (use-package solaire-mode
   :ensure t
