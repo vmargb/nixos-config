@@ -43,7 +43,14 @@
 (setq make-backup-files nil)
 (setq auto-save-default nil)
 
+;; fonts and mixed-pitch fonts
 (set-face-attribute 'default nil :font "JetBrains Mono-12")
+(use-package mixed-pitch
+  :hook
+  (text-mode . mixed-pitch-mode)
+  :custom
+  (mixed-pitch-set-height t))
+
 
 ;; -------------------
 ;; Theme and modeline
@@ -123,6 +130,33 @@
   :ensure t
   :hook (after-init . spacious-padding-mode))
 
+;; distraction-free mode
+(use-package olivetti
+  :ensure t
+  :init
+  (setq olivetti-body-width 120)  ;; makes the writing area around 100 columns wide
+
+  :config
+  ;; optionally enable olivetti-mode automatically in text and org modes
+  (add-hook 'text-mode-hook #'olivetti-mode)
+  (add-hook 'org-mode-hook #'olivetti-mode)
+
+  ;; You may want to enable visual-line-mode for soft line wrapping with Olivetti
+  (add-hook 'olivetti-mode-hook #'visual-line-mode))
+
+;; toggle line number, text scale automatically
+(defun my/olivetti-setup ()
+  "Disable line numbers and increase font size in Olivetti mode."
+  (if olivetti-mode
+      (progn
+        (display-line-numbers-mode -1)  ;; disable line numbers
+        (text-scale-set 2)) ;; increase font size by 2 steps
+    ;; Restore defaults when disabling
+    (display-line-numbers-mode 1)
+    (text-scale-set 0)))
+
+(add-hook 'olivetti-mode-hook #'my/olivetti-setup)
+
 
 ;; -----------------
 ;; Evil setup
@@ -148,6 +182,40 @@
   (evil-snipe-mode +1)
   (evil-snipe-override-mode +1))
 
+
+;; -----------------
+;; Treesitter setup
+;; -----------------
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt) ; prompt to install missing grammars
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all)  ; map all major modes to their tree-sitter versions
+  (global-treesit-auto-mode)) ; enable treesit-auto globally
+
+
+;; ---------------------------------------------
+;; Project management (using built-in project.el)
+;; ---------------------------------------------
+(use-package project
+  :ensure nil  ;; built-in
+  :custom
+  (project-projects-directory "~/projects")
+  (project-switch-commands
+   '((project-find-file "Find file")
+     (project-dired "Dired")
+     (magit-project-status "Magit")
+     (consult-ripgrep "Search")
+     (project-eshell "Eshell")))
+  :config
+  ;; helper to manually add projects
+  (defun my/add-project (dir) ;; M-x my/add-project
+    "Manually add DIR to known projects."
+    (interactive "DDirectory: ")
+    (add-to-list 'project--list (list dir))
+    (project--write-project-list)))
+
+
 ;; -------------------
 ;; Dashboard (welcome)
 ;; -------------------
@@ -163,6 +231,7 @@
   (setq dashboard-footer-messages '("Hello World!"))
 
   ;; --- Content ---
+  (setq dashboard-projects-backend 'project-el)
   (setq dashboard-items '((recents   . 5)
                           (agenda    . 7)
                           (projects  . 5)
@@ -170,7 +239,7 @@
   (dashboard-setup-startup-hook))
 
 ;; -------------
-;; Completion UX
+;; Mini Buffer Completion UX
 ;; -------------
 (use-package vertico
   :init (vertico-mode))
@@ -189,6 +258,19 @@
          ("C-x b" . consult-buffer)
          ("M-y" . consult-yank-pop)
          ("C-c h" . consult-history)))
+
+;; embark integration with consult
+(use-package embark
+  :bind
+  (("C-." . embark-act)         ;; act on thing at point
+   ("C-;" . embark-dwim))       ;; smarter default action
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command))
+
+(use-package embark-consult
+  :after (embark consult)
+  :hook (embark-collect-mode . consult-preview-at-point-mode))
+
 
 (use-package which-key
   :init (which-key-mode)
@@ -210,6 +292,10 @@
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev))
 
+;; context indicator in code
+(use-package breadcrumb
+  :config (breadcrumb-mode))
+
 (use-package all-the-icons-completion
   :after (marginalia all-the-icons)
   :hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
@@ -221,16 +307,6 @@
 (use-package magit
   :commands (magit-status))
 
-;; -------------
-;; Project management
-;; -------------
-(use-package projectile
-  :diminish projectile-mode
-  :config
-  (projectile-mode)
-  (setq projectile-completion-system 'auto)
-  :bind-keymap
-  ("C-c p" . projectile-command-map))
 
 ;; ----------------
 ;; Treemacs (file tree)
@@ -270,6 +346,14 @@
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode))
 
+(use-package org-appear
+  :hook (org-mode . org-appear-mode)
+  :custom
+  (org-appear-autolinks t)
+  (org-appear-autosubmarkers t)
+  (org-appear-autoemphasis t))
+
+
 ;; ------------------
 ;; Terminal and help
 ;; ------------------
@@ -288,6 +372,11 @@
 ;; ------------------
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
+
+;; beautiful dired
+(use-package diredfl
+  :hook (dired-mode . diredfl-mode))
+
 
 ;; ------------------
 ;; Power tools
@@ -329,8 +418,11 @@
     "ss" '(consult-ripgrep :which-key "search project (rg)")
 
     "p"  '(:ignore t :which-key "projects")
-    "pp" '(projectile-switch-project :which-key "switch project")
-    "pf" '(projectile-find-file :which-key "find file in project")
+    "pp" '(project-switch-project :which-key "switch project")
+    "pf" '(project-find-file :which-key "find file in project")
+    "pd" '(project-dired :which-key "project dired")
+    "pg" '(consult-ripgrep :which-key "search project (rg)")
+    "pe" '(project-eshell :which-key "project eshell")
 
     "g"  '(:ignore t :which-key "git")
     "gs" '(magit-status :which-key "status")
@@ -350,7 +442,8 @@
     "w/"  '(split-window-right :which-key "split vertical")
     "w-"  '(split-window-below :which-key "split horizontal")
     "wd"  '(delete-window :which-key "delete window")
-    "ww"  '(other-window :which-key "other window"))
+    "ww"  '(other-window :which-key "other window")
+    "z"   #'olivetti-mode)
 
   (general-define-key
     :states '(normal visual)
@@ -367,6 +460,13 @@
 
     ;; others
     "<f5>" 'treemacs))
+
+;; window dividers
+(setq window-divider-default-places t
+      window-divider-default-bottom-width 1
+      window-divider-default-right-width 1)
+(window-divider-mode 1)
+
 
 ;; ------------------
 ;; General tweaks
