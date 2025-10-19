@@ -244,7 +244,7 @@
   :after all-the-icons
   :config
   ;; --- Aesthetics ---
-  (setq dashboard-startup-banner 'official) ; or point this to image
+  (setq dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory)) ; or image
   (setq dashboard-center-content t)      ; center the dashboard content
   (setq dashboard-show-shortcuts t)    ; hide or show shortcuts
   (setq dashboard-set-heading-icons t)
