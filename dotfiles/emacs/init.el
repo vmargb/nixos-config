@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; =========================================================
 ;; Performance tweaks to run first
 ;; =========================================================
@@ -198,10 +200,20 @@
   :config
   (global-evil-surround-mode 1))
 
+;; more accurate f & t
 (use-package evil-snipe
   :config
   (evil-snipe-mode +1)
   (evil-snipe-override-mode +1))
+
+
+;; easymotion/vim-sneak functionality
+(use-package avy
+  :bind (("C-:" . avy-goto-char-timer) ;; more like flash.nvim
+         ("C-'" . avy-goto-word-1)))   ;; goto single character
+
+;; use native undo-redo
+(setq evil-undo-system 'undo-redo)
 
 
 ;; -----------------
@@ -235,6 +247,11 @@
     (interactive "DDirectory: ")
     (add-to-list 'project--list (list dir))
     (project--write-project-list)))
+
+;; Harpoon, quick-switch most common files
+(use-package harpoon
+  :ensure t
+  :defer t)
 
 
 ;; -------------------
@@ -378,6 +395,7 @@
 ;; Terminal and help
 ;; ------------------
 (use-package vterm
+  :defer t
   :commands vterm)
 
 (use-package helpful
@@ -397,13 +415,19 @@
 (use-package diredfl
   :hook (dired-mode . diredfl-mode))
 
+;; wdired
+;; C-x C-q: enter wdired
+;; C-c C-c: apply changes
+;; C-c C-k: discard
+(setq wdired-allow-to-change-permissions t) ;; change permissions
+(setq wdired-create-parent-directories t)   ;; create directories
+(setq wdired-allow-to-redirect-links t)     ;; change symlinks
 
-;; ------------------
-;; Power tools
-;; ------------------
-(use-package avy
-  :bind (("C-:" . avy-goto-char-timer)
-         ("C-'" . avy-goto-word-1)))
+;; zoxide integration
+(use-package zoxide
+  :ensure t)
+
+
 
 ;; ------------------
 ;; LSP
@@ -426,17 +450,35 @@
     :global-prefix "M-SPC")
 
   (my/leader-keys
+    ;; files
     "f"  '(:ignore t :which-key "files")
     "ff" '(find-file :which-key "find file")
-    "fd" '(dired :which-key "open dired") ;; open dired from cwd (floating)
     "fs" '(save-buffer :which-key "save file")
 
+    ;; dired
+    "d"  '(:ignore t :which-key "dired")
+    "dd" '(dired :which-key "open dired")                        ;; have to specify directory
+    "dj" '(dired-jump :which-key "dired in current buffer")      ;; dont have to specify directory
+    "dn" '(dired-create-directory :which-key "new directory")    ;; create in current directory
+    "df" '(find-name-dired :which-key "get files by name")       ;; returns all files with filename
+    "dg" '(find-grep-dired :which-key "get files by grep")       ;; returns all files with grep
+    "df" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
+    "de" '(wdired-change-to-wdired-mode :which-key "use wdired")
+
+    ;; zoxide-dired
+    "z"  '(:ignore t :which-key "zoxide")
+    "zz" '(zoxide-travel :which-key "zoxide jump")              ;; any dir in zoxide history
+    "zf" '(zoxide-find-file :which-key "zoxide find file")      ;; above but open file too
+    "za" '(zoxide-add :which-key "zoxide add directory")
+
+    ;; buffer
     "b"  '(:ignore t :which-key "buffers")
     "bb" '(consult-buffer :which-key "switch buffer")
     "bd" '(kill-this-buffer :which-key "kill buffer")
     "bl" '(list-buffers :which-key "list buffers")
     "bi" '(ibuffer :which-key "ibuffer")
 
+    ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
     "ms" '(bookmark-set :which-key "set bookmark")
     "mj" '(bookmark-jump :which-key "jump to bookmark")
@@ -445,19 +487,34 @@
     "s"  '(:ignore t :which-key "search")
     "ss" '(consult-ripgrep :which-key "search project (rg)")
 
+    ;; harpoon
+    "h" '(:ignore t :which-key "harpoon")
+    "ha" '(harpoon-add-file :which-key "add file")
+    "hh" '(harpoon-toggle-quick-menu :which-key "menu")
+    "hH" '(harpoon-quick-menu-hydra :which-key "menu")
+    "hn" '(harpoon-go-to-next :which-key "next")
+    "hp" '(harpoon-go-to-prev :which-key "previous")
+    "h1" '(harpoon-go-to-1 :which-key "file 1")
+    "h2" '(harpoon-go-to-2 :which-key "file 2")
+    "h3" '(harpoon-go-to-3 :which-key "file 3")
+    "h4" '(harpoon-go-to-4 :which-key "file 4")
+
+    ;; project
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
-    "pf" '(project-find-file :which-key "find file in project") ;; open floating
-    "pd" '(project-dired :which-key "project dired") ;; open dired at project root
-    "pg" '(consult-ripgrep :which-key "search project (rg)")
+    "pf" '(project-find-file :which-key "find file in project")  ;; open floating
+    "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
+    "pg" '(consult-ripgrep :which-key "search project (rg)")     ;; grep from root
     "pe" '(project-eshell :which-key "project eshell")
 
+    ;; magit
     "g"  '(:ignore t :which-key "git")
     "gs" '(magit-status :which-key "status")
 
     "t"  '(:ignore t :which-key "toggles")
     "tt" '(treemacs :which-key "toggle treemacs")
 
+    ;; org
     "o"  '(:ignore t :which-key "org")
     "oa" '(org-agenda :which-key "agenda")
     "oc" '(org-capture :which-key "capture")
@@ -471,14 +528,14 @@
     "w-"  '(split-window-below :which-key "split horizontal")
     "wd"  '(delete-window :which-key "delete window")
     "ww"  '(other-window :which-key "other window")
-    "z"   #'olivetti-mode)
+    "Z"   #'olivetti-mode)
 
   (general-define-key
     :states '(normal visual)
     :keymaps 'override
     ;; avy bindings
-    "z" 'avy-goto-char-timer
-    "Z" 'avy-goto-word-1
+    "z" 'avy-goto-char-timer ;; flash.nvim style
+    "Z" 'avy-goto-word-1     ;; goto single char
 
     ;; window navigation
     "C-h" 'evil-window-left
