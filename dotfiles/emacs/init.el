@@ -243,7 +243,6 @@
 (use-package dashboard
   :after all-the-icons
   :config
-  ;; --- Aesthetics ---
   (setq dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory)) ; or image
   (setq dashboard-center-content t)      ; center the dashboard content
   (setq dashboard-show-shortcuts t)    ; hide or show shortcuts
@@ -429,6 +428,7 @@
   (my/leader-keys
     "f"  '(:ignore t :which-key "files")
     "ff" '(find-file :which-key "find file")
+    "fd" '(dired :which-key "open dired") ;; open dired from cwd (floating)
     "fs" '(save-buffer :which-key "save file")
 
     "b"  '(:ignore t :which-key "buffers")
@@ -447,8 +447,8 @@
 
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
-    "pf" '(project-find-file :which-key "find file in project")
-    "pd" '(project-dired :which-key "project dired")
+    "pf" '(project-find-file :which-key "find file in project") ;; open floating
+    "pd" '(project-dired :which-key "project dired") ;; open dired at project root
     "pg" '(consult-ripgrep :which-key "search project (rg)")
     "pe" '(project-eshell :which-key "project eshell")
 
@@ -484,10 +484,7 @@
     "C-h" 'evil-window-left
     "C-j" 'evil-window-down
     "C-k" 'evil-window-up
-    "C-l" 'evil-window-right
-
-    ;; others
-    "<f5>" 'treemacs))
+    "C-l" 'evil-window-right))
 
 ;; window dividers
 (setq window-divider-default-places t
