@@ -5,23 +5,24 @@ A modular NixOS, Flakes and Home Manager config designed for reproducibility acr
 
 ```
 nix-config/
-├─ flake.nix                      ← Orchestrates everything
+├─ flake.nix                      ← Root entry
 ├─ common/
-│  ├─ system-base.nix             ← The rulebook everyone has to follow
+│  ├─ system-base.nix             ← The rulebook for everyone
 │  └─ modules/
-│     ├─ default.nix              ← The rulebook you can choose to follow
-│     ├─ editors.nix              ← Emacs? Neovim? Zed? Your choice
-│     ├─ foot.nix                 ← Foo + term => foot, (not feet)
-│     ├─ shells.nix               ← Bash, zsh, fish? one-stop to have them all
+│     ├─ default.nix
+│     ├─ editors.nix              ← Emacs w/ evil > Neovim
+│     ├─ foot.nix                 ← To balance out the Emacs bloat
+│     ├─ shells.nix               ← POSIX-compliant... sometimes
 │     ├─ cosmic.nix               ← Gnome but better
 │     ├─ niri.nix                 ← PaperWM but better
-│     ├─ waybar.nix               ← A status bar you will never look at
+│     ├─ waybar.nix               ← A bar you will never look at
 │     ├─ rofi.nix                 ← Telescope.nvim but for your apps
-│     ├─ mako.nix                 ← Popups that politely ruin your concentration
+│     ├─ mako.nix                 ← Popups that politely ruin your focus
 │     ├─ greetd.nix               ← A no-nonsense TUI greeter
 │     └─ dev/                     ← Web-dev, Android & all your esoteric langs
 ├─ dotfiles/                      ← Raw configs (symlinked by dotfiles.nix)
-│  ├─ emacs/config.org
+│  ├─ emacs/
+│  ├─ neovim/
 │  ├─ fish/config.fish
 │  ├─ zsh/.zshrc
 │  ├─ starship/starship.toml
@@ -61,13 +62,12 @@ Remember to adjust `hostname` to match one of the hosts(or create your own)
   - `system-base.nix`: Universal system packages and settings in `common/`
   - `default.nix`: Modular user-level configs (Waybar, Rofi, etc.) in `common/modules/`
   
-  Uses **conditional-logic** to override each option per-host.
-
 - **Host-Specific Profiles**: Isolated configurations for each machine type (laptop, desktop, server) with their own:
   - `configuration.nix`: System-level settings and `system-base.nix` overrides
   - `home.nix`: User-level settings and `default.nix` overrides
 
-- **Dotfile Management**: Static configurations are stored in `dotfiles/` and symlinked by `dotfiles.nix`.
+ both files allow **conditional-logic** to override each option per-host.
+
 
 ## Usage
 
@@ -96,7 +96,7 @@ nix flake update
 1. Add Nix module in `common/modules/`
 2. Either import it in `common/modules/default.nix` or directly into `home.nix`
 
-**Note:** If it's a static module, add the config to `dotfiles/`, `dotfiles.nix` will automatically handle the symlink for you.
+**Note:** If you don't want to use Nix, add the config to `dotfiles/`, `dotfiles.nix` will automatically handle the symlink for you on the next rebuild.
 
 ## Design Philosophy
 
@@ -106,4 +106,4 @@ while others are static configurations symlinked into `dotfiles/`
 
 These are intentionally split into two parts:
 - **Dynamic:** Modules that require runtime changes (Stylix theming, host-specific tweaks)
-- **Static:** Modules that are changed more regularly
+- **Static:** Modules that are tweaked regularly or have more complex configuration
