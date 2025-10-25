@@ -54,17 +54,6 @@
 ;; or whatever nerd font you want
 (set-face-attribute 'default nil :font "Lilex Nerd Font Mono-14")
 
-;; fonts and mixed-pitch fonts
-(use-package mixed-pitch
-  :hook ((text-mode . nil) ;; disable global text-mode hook
-         (org-mode . mixed-pitch-mode)    ;; Enable for Org files
-         (markdown-mode . mixed-pitch-mode) ;; Enable for Markdown files
-         ;;(plain-text-mode . mixed-pitch-mode) ;; plain text files incl HTML
-	 )
-  :custom
-  (mixed-pitch-set-height t))
-
-
 ;; -------------------
 ;; Theme and modeline
 ;; -------------------
@@ -168,10 +157,8 @@ _q_ quit                 ^
 ;; clear buffer and non buffer highlighting
 (use-package solaire-mode
   :ensure t
-  :hook (after-init . solaire-global-mode)
-  :config
-  (push '(treemacs-window-background-face . solaire-default-face) solaire-mode-remap-alist)
-  (push '(treemacs-hl-line-face . solaire-hl-line-face) solaire-mode-remap-alist))
+  :hook (after-init . solaire-global-mode))
+
 
 ;; auto resize panes on window switch
 (use-package golden-ratio
@@ -207,7 +194,7 @@ _q_ quit                 ^
 (use-package olivetti
   :ensure t
   :init
-  (setq olivetti-body-width 120)  ;; makes the writing area around 100 columns wide
+  (setq olivetti-body-width 100)  ;; makes the writing area around 100 columns wide
 
   :config
   ;; optionally enable olivetti-mode automatically in text and org modes
@@ -283,10 +270,10 @@ _q_ quit                 ^
 
 
 ;; ---------------------------------------------
-;; Project management (using built-in project.el)
+;; Project management (built-in project.el)
 ;; ---------------------------------------------
 (use-package project
-  :ensure nil  ;; built-in
+  :ensure nil ;; built-in
   :custom
   (project-projects-directory "~/projects")
   (project-switch-commands
@@ -308,27 +295,88 @@ _q_ quit                 ^
   :ensure t
   :defer t)
 
+;; ---------------------------------------------
+;; Session Persistence (easysession.el)
+;; ---------------------------------------------
+(use-package easysession
+  :ensure t
+  :custom
+  (easysession-mode-line-misc-info t) ;; display in mode-line
+  (easysession-save-interval (* 10 60)) ;; save the session every 10 minutes
+  :init
+  ;; load the session (including geometry) at startup
+  (add-hook 'emacs-startup-hook #'easysession-load-including-geometry 102)
+  ;; Start the autosave mode at startup
+  (add-hook 'emacs-startup-hook #'easysession-save-mode 103)
+  )
+
+
 
 ;; -------------------
-;; Dashboard (welcome)
+;; Dashboard (Welcome)
 ;; -------------------
 (use-package dashboard
-  :after all-the-icons
   :config
-  (setq dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory)) ; or image
-  (setq dashboard-center-content t)      ; center the dashboard content
-  (setq dashboard-show-shortcuts t)    ; hide or show shortcuts
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-  (setq dashboard-footer-messages '("Hello World!"))
+  (setq dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
+  (setq dashboard-banner-logo-title "Welcome Back!")
 
-  ;; --- Content ---
-  (setq dashboard-projects-backend 'project-el)
-  (setq dashboard-items '((recents   . 5)
-                          (agenda    . 7)
-                          (projects  . 5)
-                          (bookmarks . 3)))
-  (dashboard-setup-startup-hook))
+  ;; Center it and keep it clean
+  (setq dashboard-center-content t)
+  (setq dashboard-vertically-center-content t)
+  (setq dashboard-show-shortcuts nil)
+  (setq dashboard-set-file-icons nil)
+  (setq dashboard-set-heading-icons nil)
+  (setq dashboard-set-navigator nil)
+
+  ;; --- custom face style for menu text ---
+  (defface my/dashboard-menu-face
+    '((t (:height 1.3 :weight bold :foreground "#87cefa")))
+    "Face for dashboard menu options.")
+
+  ;; --- custom Menu (text only, no icons) ---
+  (setq dashboard-init-info
+        (concat
+         "\n"
+         (propertize "  [p] Projects\n" 'face 'my/dashboard-menu-face)
+         (propertize "  [r] Recent Files\n" 'face 'my/dashboard-menu-face)
+         (propertize "  [m] Bookmarks\n" 'face 'my/dashboard-menu-face)
+         (propertize "  [a] Agenda\n" 'face 'my/dashboard-menu-face)
+         (propertize "  [q] Quit\n" 'face 'my/dashboard-menu-face)
+         "\n"))
+
+  (setq dashboard-items '()) ;; disable defaults
+  (dashboard-setup-startup-hook)
+
+  ;; --- keybindings ---
+  (defun my/dashboard-open-projects ()
+    (interactive)
+    (call-interactively #'project-switch-project))
+
+  (defun my/dashboard-open-recents ()
+    (interactive)
+    (call-interactively #'recentf))
+
+  (defun my/dashboard-open-bookmarks ()
+    (interactive)
+    (call-interactively #'bookmark-jump))
+
+  (defun my/dashboard-open-agenda ()
+    (interactive)
+    (org-agenda-list))
+
+  ;; Quit Emacs completely
+  (defun my/dashboard-quit ()
+    (interactive)
+    (save-buffers-kill-emacs))
+
+  (defun my/dashboard-setup-keys ()
+    (local-set-key (kbd "p") #'my/dashboard-open-projects)
+    (local-set-key (kbd "r") #'my/dashboard-open-recents)
+    (local-set-key (kbd "m") #'my/dashboard-open-bookmarks)
+    (local-set-key (kbd "a") #'my/dashboard-open-agenda)
+    (local-set-key (kbd "q") #'my/dashboard-quit))
+
+  (add-hook 'dashboard-mode-hook #'my/dashboard-setup-keys))
 
 ;; -------------
 ;; Mini Buffer Completion UX
@@ -401,23 +449,27 @@ _q_ quit                 ^
   :commands (magit-status))
 
 ;; ----------------
-;; Treemacs (file tree)
+;; file tree (neotree)
 ;; ----------------
-(use-package treemacs
+;; q: close, R: change root to current
+;; J: enter new path, y: copy to path
+;; c: create, d: delete, r: rename
+;; h: hidden files, 
+(use-package neotree
+  :ensure t
   :defer t
   :config
-  (setq treemacs-width 30
-        treemacs-collapse-dirs 3)
-  (treemacs-follow-mode t)
-  (treemacs-filewatch-mode t))
+  (setq neo-window-fixed-size nil) ;; makes neotree window resize flexibly
+  (setq neo-theme (if (display-graphic-p) 'icons 'arrow)) ;; use icons in GUI, arrows in terminal
+  ;; fit neotree window to contents
+  (defun neotree--fit-window (type path c)
+    "Resize neotree window to fit contents based on TYPE, with PATH and C unused."
+    (when (eq type 'directory)
+      (neo-buffer--with-resizable-window
+       (let ((fit-window-to-buffer-horizontally t))
+         (fit-window-to-buffer)))))
+  (add-hook 'neo-enter-hook #'neotree--fit-window))
 
-(use-package treemacs-evil
-  :after (treemacs evil))
-
-(use-package treemacs-all-the-icons
-  :after (treemacs all-the-icons)
-  :config
-  (treemacs-load-theme "all-the-icons"))
 
 ;; -------
 ;; Org mode
@@ -458,6 +510,10 @@ _q_ quit                 ^
 ;; ------------------
 ;; Dired enhancements
 ;; ------------------
+;; Keybindings:
+;; dired-do-rename: R, dired-create-directory: +
+;; dired-do-copy: C(specify copy dir), dired-do-delete: D
+;; move: R (specify new dir with file name)
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
 
@@ -473,25 +529,19 @@ _q_ quit                 ^
 (setq wdired-create-parent-directories t)   ;; create directories
 (setq wdired-allow-to-redirect-links t)     ;; change symlinks
 
-;; launcher for
-(use-package dired-launch
-  :ensure t
-  :defer t
-  :config
-  (setq dired-launch-extensions-map
-        '(("mp3" . "mpv")
-          ("mkv" . "mpv")
-          ("mp4" . "mpv")
-          ("jpg" . "imv")
-          ("jpeg" . "imv")
-          ("png" . "imv")
-          ("gif" . "imv")
-          ("pdf" . "zathura")
-          ("epub" . "zathura")
-          ("html" . "firefox")
-	  ("zip" . "unzip")
-          ))
-  (define-key dired-mode-map (kbd "C-c C-o") 'dired-launch-open))
+;; use built-in dired-x to launch external apps
+(require 'dired-x)
+(setq dired-guess-shell-alist-user
+      '(("\\.mp3\\'" "mpv")
+        ("\\.mkv\\'" "mpv")
+        ("\\.mp4\\'" "mpv")
+        ("\\.jpe?g\\'" "imv")
+        ("\\.png\\'" "imv")
+        ("\\.gif\\'" "imv")
+        ("\\.pdf\\'" "zathura")
+        ("\\.epub\\'" "zathura")
+        ("\\.html\\'" "Zen")
+        ("\\.zip\\'" "unzip")))
 
 
 ;; ------------------
@@ -504,20 +554,13 @@ _q_ quit                 ^
   (setq eglot-events-buffer-size 0) ; optional: disables the bulky *eglot-events* buffer
   (setq eglot-autoshutdown t)) ; optional: shutdown server when last buffer is closed
 
+;; temporary lang support without LSP
+(unless (package-installed-p 'kotlin-mode)
+  (package-refresh-contents)
+  (package-install 'kotlin-mode))
+(add-to-list 'auto-mode-alist '("\\.kt\\'" . kotlin-mode))
+(add-to-list 'auto-mode-alist '("\\.kts\\'" . kotlin-mode))
 
-;; if no LSP, use dumb-jump for go-to
-(use-package dumb-jump
-  :defer t
-  :init
-  (setq xref-show-definitions-function #'xref-show-definitions-completing-read)
-  :config
-  ;;(setq dumb-jump-selector 'ivy)  ;; or 'helm, or 'completing-read
-  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
-
-;; revert evil-mode override of these keys for dumb-jump
-;; M-.: goto, M-,: back
-(define-key evil-normal-state-map (kbd "M-.") #'xref-find-definitions)
-(define-key evil-normal-state-map (kbd "M-,") #'xref-pop-marker-stack)
 
 
 ;; ------------------
@@ -545,6 +588,7 @@ _q_ quit                 ^
     "df" '(find-name-dired :which-key "get files by name")       ;; returns all files with filename
     "dg" '(find-grep-dired :which-key "get files by grep")       ;; returns all files with grep
     "df" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
+    "ds" '(dired-sidebar-toggle-sidebar :which-key "dired other frame") ;; open dired in another frame
 
     ;; buffer
     "b"  '(:ignore t :which-key "buffers")
@@ -552,18 +596,25 @@ _q_ quit                 ^
     "bd" '(kill-this-buffer :which-key "kill buffer")
     "bl" '(list-buffers :which-key "list buffers")
     "bi" '(ibuffer :which-key "ibuffer")
+    "bj" '(breadcrumb-jump :which-key "breadcrumb")
 
     ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
+    "mm" '(bookmark-jump :which-key "jump to bookmark")
     "ms" '(bookmark-set :which-key "set bookmark")
-    "mj" '(bookmark-jump :which-key "jump to bookmark")
     "md" '(bookmark-delete :which-key "delete bookmark")
 
-    "s"  '(:ignore t :which-key "search")
-    "ss" '(consult-ripgrep :which-key "search project (rg)")
+    ;; easysession
+    "e"  '(:ignore t :which-key "session")
+    "ee" '(easysession-switch-to :which-key "switch")
+    "ed" '(easysession-delete :which-key "delete")
+    "er" '(easysession-reset :which-key "reset")
+    "el" '(easysession-load :which-key "load current")
+    "es" '(easysession-save :which-key "save")
+    "eS" '(easysession-save-as :which-key "save as")
 
     ;; harpoon
-    "h" '(:ignore t :which-key "harpoon")
+    "h"  '(:ignore t :which-key "harpoon")
     "ha" '(harpoon-add-file :which-key "add file")
     "hh" '(harpoon-toggle-quick-menu :which-key "menu")
     "hH" '(harpoon-quick-menu-hydra :which-key "menu")
@@ -577,6 +628,7 @@ _q_ quit                 ^
     ;; project
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
+    "pa" '(my/add-project :which-key "switch project")
     "pf" '(project-find-file :which-key "find file in project")  ;; open floating
     "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
     "pg" '(consult-ripgrep :which-key "search project (rg)")     ;; grep from root
@@ -586,8 +638,9 @@ _q_ quit                 ^
     "g"  '(:ignore t :which-key "git")
     "gs" '(magit-status :which-key "status")
 
-    "t"  '(:ignore t :which-key "toggles")
-    "tt" '(treemacs :which-key "toggle treemacs")
+    ;; tree
+    "t"  '(:ignore t :which-key "tree")
+    "tt" '(neotree-toggle :which-key "toggle")
 
     ;; org
     "o"  '(:ignore t :which-key "org")
@@ -600,8 +653,8 @@ _q_ quit                 ^
 
     ;;window navigation (with resizing)
     "w"  '(:ignore t :which-key "windows")
-    "w/" '(split-window-right :which-key "split vertical")
-    "w-" '(split-window-below :which-key "split horizontal")
+    "wL" '(split-window-right :which-key "split vertical")
+    "wJ" '(split-window-below :which-key "split horizontal")
     "wd" '(delete-window :which-key "delete window")
     "ww" '(other-window :which-key "other window")
     "wh" '(windmove-left :which-key "move left")
