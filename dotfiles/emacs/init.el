@@ -5,7 +5,6 @@
 ;; ===========================
 ;; - Emacs 29 minimum (treesitter, LSP)
 ;; - rg (ripgrep)
-;; - ag (silver searcher)
 ;; - fd (faster find)
 ;; - fzf (fuzzy finder)
 
@@ -30,21 +29,6 @@
   :init
   (gcmh-mode 1))
 
-;; -----------------------------
-;; Basic UI and UX improvements
-;; -----------------------------
-(setq inhibit-startup-message t)
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
-(blink-cursor-mode 0)
-(global-display-line-numbers-mode t)
-(setq display-line-numbers-type 'relative)
-(setq ring-bell-function 'ignore)
-(setq scroll-margin 5)
-(setq make-backup-files nil)
-(setq auto-save-default nil)
-
 ;; window dividers
 (setq window-divider-default-places t
       window-divider-default-bottom-width 1
@@ -54,9 +38,9 @@
 ;; or whatever nerd font you want
 (set-face-attribute 'default nil :font "Lilex Nerd Font Mono-14")
 
-;; -------------------
-;; Theme and modeline
-;; -------------------
+;; -------------------------
+;; Theme and modeline (doom)
+;; -------------------------
 (use-package doom-themes
   :ensure t
   :config
@@ -217,7 +201,6 @@ _q_ quit                 ^
 
 (add-hook 'olivetti-mode-hook #'my/olivetti-setup)
 
-
 ;; -----------------
 ;; Evil setup
 ;; -----------------
@@ -234,6 +217,7 @@ _q_ quit                 ^
   :config
   (evil-collection-init))
 
+;; e.g. ysiw", ds", cs"'
 (use-package evil-surround
   :config
   (global-evil-surround-mode 1))
@@ -290,11 +274,19 @@ _q_ quit                 ^
     (add-to-list 'project--list (list dir))
     (project--write-project-list)))
 
+(setq xref-search-program 'ripgrep) ;; use ripgrep over grep
+
+
 ;; Harpoon, quick-switch most common files
 (use-package harpoon
   :ensure t
   :defer t)
 
+;; ---------------------------------------------
+;; the difference between projects and sessions:
+;; 'projects' are simply all your git repos
+;; whereas 'sessions' are workspaces that persist
+;; your window and buffer configurations for a project
 ;; ---------------------------------------------
 ;; Session Persistence (easysession.el)
 ;; ---------------------------------------------
@@ -307,14 +299,21 @@ _q_ quit                 ^
   ;; load the session (including geometry) at startup
   (add-hook 'emacs-startup-hook #'easysession-load-including-geometry 102)
   ;; Start the autosave mode at startup
-  (add-hook 'emacs-startup-hook #'easysession-save-mode 103)
-  )
+  (add-hook 'emacs-startup-hook #'easysession-save-mode 103))
 
+;;(setq easysession-switch-to-save-session nil) ;; don't save current session when switching to another session
 
+;; only automatically save the main session
+;; other sessions require manual easysession-save
+(defun my-easysession-only-main-saved ()
+  "Only save the main session."
+  (when (string= "main" (easysession-get-current-session-name))
+    t))
+(setq easysession-save-mode-predicate 'my-easysession-only-main-saved)
 
-;; -------------------
-;; Dashboard (Welcome)
-;; -------------------
+;; -------------------------
+;; Welcome Screen (dashboard.el)
+;; -------------------------
 (use-package dashboard
   :config
   (setq dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
@@ -378,21 +377,27 @@ _q_ quit                 ^
 
   (add-hook 'dashboard-mode-hook #'my/dashboard-setup-keys))
 
-;; -------------
+;; -------------------------
 ;; Mini Buffer Completion UX
-;; -------------
+;; -------------------------
+
+;; handles vertical display of candidates
 (use-package vertico
   :init (vertico-mode))
 
 (use-package orderless
   :init
-  (setq completion-styles '(orderless basic)
+  (setq completion-styles '(orderless basic) ;; use orderless, then basic
         completion-category-defaults nil
-        completion-category-overrides '((file (styles basic partial-completion)))))
+        completion-category-overrides '((file (styles basic partial-completion)))
+	;; show updates in a fuzzy style
+	orderless-matching-styles '(orderless-literal orderless-flex orderless-regexp)))
 
+;; icons for orderless matches
 (use-package marginalia
   :init (marginalia-mode))
 
+;; does the searching
 (use-package consult
   :bind (("C-s" . consult-line)
          ("C-x b" . consult-buffer)
@@ -561,7 +566,16 @@ _q_ quit                 ^
 (add-to-list 'auto-mode-alist '("\\.kt\\'" . kotlin-mode))
 (add-to-list 'auto-mode-alist '("\\.kts\\'" . kotlin-mode))
 
+(use-package nix-mode
+  :mode "\\.nix\\'")
 
+
+;; Essentials (tldr)
+;; goto buffer:             spc b b
+;; goto file in dir:        spc f f
+;; goto file everywhere:    spc f d
+;; grep to file everywhere: spc f g
+;; goto line in file:       spc f l
 
 ;; ------------------
 ;; Keybindings (Doom-style)
@@ -577,26 +591,27 @@ _q_ quit                 ^
   (my/leader-keys
     ;; files
     "f"  '(:ignore t :which-key "files")
-    "ff" '(find-file :which-key "find file")
-    "fs" '(save-buffer :which-key "save file")
+    "ff" '(find-file :which-key "find file")                     ;; find file only in CURRENT dir
+    "fd" '(consult-fd :which-key "find file")                    ;; find in ALL dirs from current
+    "fg" '(consult-ripgrep :which-key "ripgrep")                 ;; grep in ALL dirs from current
+    "fl" '(consult-line :which-key "consult line")               ;; see all '/' results
+    "fj" '(breadcrumb-jump :which-key "breadcrumb")              ;; jump to contexts in file
 
     ;; dired
     "d"  '(:ignore t :which-key "dired")
-    "dd" '(dired :which-key "open dired")                        ;; have to specify directory
-    "dj" '(dired-jump :which-key "dired in current buffer")      ;; dont have to specify directory
-    "dn" '(dired-create-directory :which-key "new directory")    ;; create in current directory
-    "df" '(find-name-dired :which-key "get files by name")       ;; returns all files with filename
-    "dg" '(find-grep-dired :which-key "get files by grep")       ;; returns all files with grep
-    "df" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
-    "ds" '(dired-sidebar-toggle-sidebar :which-key "dired other frame") ;; open dired in another frame
+    "dd" '(dired :which-key "open dired")                        ;; specify directory
+    "dc" '(dired-jump :which-key "dired in current buffer")      ;; current buffer directory
+    "dn" '(dired-create-directory :which-key "new directory")    ;; create in current directory or '+'
+    "df" '(find-name-dired :which-key "get files by name")       ;; find file, in specific directory
+    "dg" '(find-grep-dired :which-key "get files by grep")       ;; grep file, in specific directory
+    "do" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
 
     ;; buffer
     "b"  '(:ignore t :which-key "buffers")
-    "bb" '(consult-buffer :which-key "switch buffer")
+    "bb" '(consult-buffer :which-key "switch buffer")            ;; find file in opened buffers
     "bd" '(kill-this-buffer :which-key "kill buffer")
-    "bl" '(list-buffers :which-key "list buffers")
     "bi" '(ibuffer :which-key "ibuffer")
-    "bj" '(breadcrumb-jump :which-key "breadcrumb")
+    "bc" '(clean-buffer-list :which-key "clean unused buffers")
 
     ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
@@ -628,10 +643,9 @@ _q_ quit                 ^
     ;; project
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
-    "pa" '(my/add-project :which-key "switch project")
-    "pf" '(project-find-file :which-key "find file in project")  ;; open floating
+    "pa" '(my/add-project :which-key "add project")
+    "pf" '(project-find-file :which-key "find file in project")  ;; find file in project
     "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
-    "pg" '(consult-ripgrep :which-key "search project (rg)")     ;; grep from root
     "pe" '(project-eshell :which-key "project eshell")
 
     ;; magit
@@ -646,6 +660,7 @@ _q_ quit                 ^
     "o"  '(:ignore t :which-key "org")
     "oa" '(org-agenda :which-key "agenda")
     "oc" '(org-capture :which-key "capture")
+    "ol" '(org-store-link :which-key "current file link")
 
     ;; custom commands
     "c"  '(:ignore t :which-key "custom")
@@ -661,6 +676,10 @@ _q_ quit                 ^
     "wl" '(windmove-right :which-key "move right")
     "wj" '(windmove-down :which-key "move down")
     "wk" '(windmove-up :which-key "move up")
+    "w>" '(enlarge-window-horizontally :which-key "grow width")
+    "w<" '(shrink-window-horizontally :which-key "shrink width")
+    "w+" '(enlarge-window :which-key "grow height")
+    "w-" '(shrink-window :which-key "shrink height")
 
     "z"  '(:ignore t :which-key "zen mode")
     "zz" '(olivetti-mode :which-key "olivetti mode")
@@ -676,6 +695,8 @@ _q_ quit                 ^
     ;; avy bindings
     "z" 'avy-goto-char-timer ;; flash.nvim style
     "Z" 'avy-goto-word-1     ;; goto single char
+    "gl" 'avy-goto-line      ;; no more numbers
+    "gc" 'evil-avy-goto-char-in-line ;; no more numbers
 
     ;; window navigation (without resizing)
     "C-h" 'evil-window-left
@@ -702,7 +723,8 @@ _q_ quit                 ^
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("7771c8496c10162220af0ca7b7e61459cb42d18c35ce272a63461c0fc1336015"
+   '("bf9df728461be9e8358a393dc3872f9ac6a7421fb613717fdf5b9e6026452461"
+     "7771c8496c10162220af0ca7b7e61459cb42d18c35ce272a63461c0fc1336015"
      "5c8a1b64431e03387348270f50470f64e28dfae0084d33108c33a81c1e126ad6"
      "13096a9a6e75c7330c1bc500f30a8f4407bd618431c94aeab55c9855731a95e1"
      "4b88b7ca61eb48bb22e2a4b589be66ba31ba805860db9ed51b4c484f3ef612a7"
