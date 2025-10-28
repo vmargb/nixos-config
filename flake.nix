@@ -6,35 +6,37 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     stylix.url = "github:nix-community/stylix";
+    nixcord.url = "github:kaylorben/nixcord";
+    nixcord.inputs.nixpkgs.follows = "nixpkgs";
+    spicetify-nix.url = "github:Gerg-L/spicetify-nix";
+    spicetify-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, stylix, ... }:
     let
-      # common modules available to all hosts
-      sharedModules = [
-        home-manager.nixosModules.home-manager
-        stylix.nixosModules.stylix
-      ];
-
-      # helper function to create new hosts
-      mkHost = name: system:
+      # load and activate these modules automatically
+      baseModules = [ home-manager.nixosModules.home-manager ];
+      desktopModules = baseModules ++ [ stylix.nixosModules.stylix ];
+      mkHost = { name, system, isDesktop ? true }: # helper to create new hosts
         nixpkgs.lib.nixosSystem {
           inherit system;
-          modules = sharedModules ++ [
+          modules = (if isDesktop then desktopModules else baseModules) ++ [
             ./hosts/${name}/configuration.nix
             {
               home-manager.useGlobalPkgs = true; # avoid pkg duplication
               home-manager.useUserPackages = true; # store pkgs in bin
-              home-manager.users.vmargb = import ./hosts/${name}/home.nix;
+              home-manager.users.vmargb = import ./hosts/${name}/home.nix {
+                inherit inputs; # passes down source reference without loading
+              };
               home-manager.users.vmargb.backupFileExtension = "hm-bak";
             }
           ];
         };
     in {
       nixosConfigurations = {
-        laptop  = mkHost "laptop"  "x86_64-linux";
-        desktop = mkHost "desktop" "x86_64-linux"; # "aarch64-darwin" for Apple
-        server = mkHost "server" "aarch64-linux"; # ARM
+        laptop  = mkHost { name = "laptop";  system = "x86_64-linux"; }; # "aarch64-darwin" for Apple
+        desktop = mkHost { name = "desktop"; system = "x86_64-linux"; };
+        server  = mkHost { name = "server";  system = "aarch64-linux"; isDesktop = false; };
       };
     };
 }

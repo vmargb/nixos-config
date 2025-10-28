@@ -3,7 +3,8 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../common/system-base.nix
+    ../../common/system/base.nix
+    ../../common/system/theme.nix
   ];
 
   networking.hostName = "desktop";
@@ -12,7 +13,6 @@
   environment.systemPackages = with pkgs; [
     xwayland-satellite
     obs-studio
-    librewolf
   ];
 
   # stylix overrides

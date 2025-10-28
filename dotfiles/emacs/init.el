@@ -36,7 +36,7 @@
 (window-divider-mode 1)
 
 ;; or whatever nerd font you want
-(set-face-attribute 'default nil :font "Lilex Nerd Font Mono-14")
+(set-face-attribute 'default nil :font "Iosevka NF-14")
 
 ;; -------------------------
 ;; Theme and modeline (doom)
@@ -391,7 +391,7 @@ _q_ quit                 ^
         completion-category-defaults nil
         completion-category-overrides '((file (styles basic partial-completion)))
 	;; show updates in a fuzzy style
-	orderless-matching-styles '(orderless-literal orderless-flex orderless-regexp)))
+	orderless-matching-styles '(orderless-flex orderless-literal orderless-regexp)))
 
 ;; icons for orderless matches
 (use-package marginalia
@@ -403,6 +403,7 @@ _q_ quit                 ^
          ("C-x b" . consult-buffer)
          ("M-y" . consult-yank-pop)
          ("C-c h" . consult-history)))
+
 
 ;; embark integration with consult
 (use-package embark
@@ -484,7 +485,10 @@ _q_ quit                 ^
   (setq org-startup-indented t
         org-hide-emphasis-markers t
         org-ellipsis " ▼"
-        org-log-done 'time))
+        org-log-done 'time)
+  (require 'org-tempo))
+
+;; org-temp: <s: src, <q: quote, <e: example
 
 (use-package org-modern
   :hook (org-mode . org-modern-mode))
@@ -576,6 +580,8 @@ _q_ quit                 ^
 ;; goto file everywhere:    spc f d
 ;; grep to file everywhere: spc f g
 ;; goto line in file:       spc f l
+;; do ctrl-back to remove whole
+;; directory names when searching
 
 ;; ------------------
 ;; Keybindings (Doom-style)

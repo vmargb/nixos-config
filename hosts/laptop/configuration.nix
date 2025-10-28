@@ -3,7 +3,8 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../common/system-base.nix
+    ../../common/system/base.nix
+    ../../common/system/theme.nix
   ];
 
   networking.hostName = "laptop";

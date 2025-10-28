@@ -1,6 +1,13 @@
 { config, pkgs, ... }:  # Base system config - things you're never going to change
 
 {
+  # user account
+  users.users.vmargb = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
+    shell = pkgs.bash; # make bash default shell at LOGIN
+  };
+
   # shared system packages
   environment.systemPackages = with pkgs; [
     # terminal essentials
@@ -73,30 +80,11 @@
   # fonts
   fonts.packages = with pkgs; [
     (nerdfonts.override {
-      fonts = [ "FiraCode" "Iosevka" "Lilex" "GeistMono" ];
+      fonts = [ "FiraCode" "Iosevka" "VictorMono" "GeistMono" ];
     })
     inter
     noto-fonts
     roboto
   ];
-
-  # Stylix theming
-  stylix = {
-    enable = true;
-    image = "/home/vmargb/.wallpapers/gruvbox.png";
-    #base16Scheme = "gruvbox-dark"; # (set theme manually)
-    fonts = {
-      serif = "Noto Serif";
-      sansSerif = "Noto Sans";
-      monospace = "Iosevka";
-    };
-  };
-
-  # user account
-  users.users.vmargb = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
-    shell = pkgs.bash; # make bash default shell at LOGIN
-  };
 }
 

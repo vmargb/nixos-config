@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ../../common/modules
+    ../../common/home
   ];
 
   home.packages = with pkgs; [
