@@ -29,6 +29,17 @@
   :init
   (gcmh-mode 1))
 
+
+(setq clean-buffer-list-delay-general (* 60 60 24)) ; close buffers older than 1 day
+(defun close-unused-buffers () ;; more extreme, close all not visible
+  (interactive)
+  (let ((buffers (buffer-list)))
+    (dolist (buf buffers)
+      (when (and (not (buffer-modified-p buf)) ;; not modified
+                 (not (get-buffer-window buf 'visible))) ;; not visible
+        (kill-buffer buf))))) ;; close
+
+
 ;; window dividers
 (setq window-divider-default-places t
       window-divider-default-bottom-width 1
@@ -178,7 +189,7 @@ _q_ quit                 ^
 (use-package olivetti
   :ensure t
   :init
-  (setq olivetti-body-width 100)  ;; makes the writing area around 100 columns wide
+  (setq olivetti-body-width 80)  ;; makes the writing area 80 columns wide
 
   :config
   ;; optionally enable olivetti-mode automatically in text and org modes
@@ -310,6 +321,23 @@ _q_ quit                 ^
   (when (string= "main" (easysession-get-current-session-name))
     t))
 (setq easysession-save-mode-predicate 'my-easysession-only-main-saved)
+
+;; only persist visible buffers since we
+;; are using harpoon anyways
+(defun my-easysession-visible-buffer-list ()
+  "return a list of all visible buffers in the current session, including buffers visible in windows or tab-bar tabs."
+  (let ((visible-buffers '()))
+    (dolist (buffer (buffer-list))
+      (when (or
+             (get-buffer-window buffer 'visible)
+             (and (bound-and-true-p tab-bar-mode)
+                  (fboundp 'tab-bar-get-buffer-tab)
+                  (tab-bar-get-buffer-tab buffer t nil)))
+        (push buffer visible-buffers)))
+    visible-buffers))
+
+(setq easysession-buffer-list-function #'my-easysession-visible-buffer-list)
+
 
 ;; -------------------------
 ;; Welcome Screen (dashboard.el)
@@ -618,6 +646,7 @@ _q_ quit                 ^
     "bd" '(kill-this-buffer :which-key "kill buffer")
     "bi" '(ibuffer :which-key "ibuffer")
     "bc" '(clean-buffer-list :which-key "clean unused buffers")
+    "bC" '(close-unused-buffers :which-key "clean buffers not visible")
 
     ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
