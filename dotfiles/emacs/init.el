@@ -1,12 +1,39 @@
 ;; -*- lexical-binding: t; -*-
 
-;; ===========================
-;; *** Dependencies ***
-;; ===========================
+;; ============================
+;;    *** Dependencies ***
+;; ============================
 ;; - Emacs 29 minimum (treesitter, LSP)
 ;; - rg (ripgrep)
 ;; - fd (faster find)
 ;; - fzf (fuzzy finder)
+;; ============================
+
+;;=====================================
+;;         Essentials (tldr)
+;;-------------------------------------
+;;               NOTE:
+;; searching is optimal inside a project
+;;       do: SPC p a (add project)
+;;
+;;    to create sessions/workspaces
+;;       do: SPC e S
+;;
+;;-------------------------------------
+;;        ** Goto file/dir **
+;; goto open buffers:       spc b b
+;; goto file in dir:        spc f f
+;; goto file project:       spc f d
+;; grep file project:       spc f g
+;; goto line in file:       spc f l
+;; do ctrl-back to remove whole
+;; directory names when searching
+;;
+;;        ** Motions **
+;; goto word:               z
+;; goto char(current line): s
+;; goto line number:        S
+;; ====================================
 
 ;; default package manager (will migrate to elpaca)
 (require 'package)
@@ -40,11 +67,14 @@
         (kill-buffer buf))))) ;; close
 
 
+(setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
+
 ;; window dividers
 (setq window-divider-default-places t
       window-divider-default-bottom-width 1
       window-divider-default-right-width 1)
 (window-divider-mode 1)
+
 
 ;; or whatever nerd font you want
 (set-face-attribute 'default nil :font "Iosevka NF-14")
@@ -233,11 +263,9 @@ _q_ quit                 ^
   :config
   (global-evil-surround-mode 1))
 
-;; more accurate f & t
-(use-package evil-snipe
+(use-package evil-commentary
   :config
-  (evil-snipe-mode +1)
-  (evil-snipe-override-mode +1))
+  (evil-commentary-mode))
 
 ;; leap/flash.nvim functionality
 (use-package avy)
@@ -276,22 +304,28 @@ _q_ quit                 ^
      (project-dired "Dired")
      (magit-project-status "Magit")
      (consult-ripgrep "Search")
-     (project-eshell "Eshell")))
-  :config
-  ;; helper to manually add projects
-  (defun my/add-project (dir) ;; M-x my/add-project
-    "Manually add DIR to known projects."
-    (interactive "DDirectory: ")
-    (add-to-list 'project--list (list dir))
-    (project--write-project-list)))
+     (project-eshell "Eshell"))))
 
+;; set a directory as a project by adding a marker in the root, only
+;; adds the project to project list when you open a file in the project
+(defun my/add-project-root-marker (&optional dir) ;; optional target directory
+  "Create a .project.el marker file in dir or the current project root.
+When called interactively, prompt for dir or default to current directory."
+  (interactive "DDirectory for project root (Enter: current folder): ")
+  (let* ((dir (or dir default-directory))
+         (marker-file (expand-file-name ".project.el" dir)))
+    (if (file-exists-p marker-file)
+        (message "Marker already exists in %s" dir)
+      (with-temp-buffer (write-file marker-file))
+      (message "Added .project.el marker to %s" dir))))
+
+;; let project.el identify root markers (emacs 29)
+(setq project-vc-extra-root-markers '(".project.el" ".projectile"))
 (setq xref-search-program 'ripgrep) ;; use ripgrep over grep
 
-
-;; Harpoon, quick-switch most common files
+;; Harpoon, quick-switch between most common files
 (use-package harpoon
-  :ensure t
-  :defer t)
+  :ensure t)
 
 ;; ---------------------------------------------
 ;; the difference between projects and sessions:
@@ -312,6 +346,7 @@ _q_ quit                 ^
   ;; Start the autosave mode at startup
   (add-hook 'emacs-startup-hook #'easysession-save-mode 103))
 
+;;return back to initial save point (optional)
 ;;(setq easysession-switch-to-save-session nil) ;; don't save current session when switching to another session
 
 ;; only automatically save the main session
@@ -322,20 +357,22 @@ _q_ quit                 ^
     t))
 (setq easysession-save-mode-predicate 'my-easysession-only-main-saved)
 
-;; only persist visible buffers since we
-;; are using harpoon anyways
+;; get a list of only the visible buffers
+;; this is to modify the custom: easysession-buffer-list-function
 (defun my-easysession-visible-buffer-list ()
   "return a list of all visible buffers in the current session, including buffers visible in windows or tab-bar tabs."
-  (let ((visible-buffers '()))
-    (dolist (buffer (buffer-list))
+  (let ((visible-buffers '())) ;; set visible buffers to empty list
+    (dolist (buffer (buffer-list)) ;; get open buffers
       (when (or
-             (get-buffer-window buffer 'visible)
-             (and (bound-and-true-p tab-bar-mode)
-                  (fboundp 'tab-bar-get-buffer-tab)
-                  (tab-bar-get-buffer-tab buffer t nil)))
+             (get-buffer-window buffer 'visible) ;; get visible buffers
+             (and (bound-and-true-p tab-bar-mode) ;; check if tab bar is enabled
+                  (fboundp 'tab-bar-get-buffer-tab) ;; check if get-buffer-tab is defined
+                  (tab-bar-get-buffer-tab buffer t nil))) ;; adds visible tab buffers too
         (push buffer visible-buffers)))
     visible-buffers))
 
+;; set easysession to only persist the visible buffers list
+;; this saves space and lets us rely on harpoon for buffer switching instead
 (setq easysession-buffer-list-function #'my-easysession-visible-buffer-list)
 
 
@@ -531,6 +568,9 @@ _q_ quit                 ^
   (org-appear-autosubmarkers t)
   (org-appear-autoemphasis t))
 
+;;(add-to-list 'load-path "~/.emacs.d/lisp/")
+;;(require 'org-color-text)
+
 
 ;; ------------------
 ;; Terminal and help
@@ -601,16 +641,6 @@ _q_ quit                 ^
 (use-package nix-mode
   :mode "\\.nix\\'")
 
-
-;; Essentials (tldr)
-;; goto buffer:             spc b b
-;; goto file in dir:        spc f f
-;; goto file everywhere:    spc f d
-;; grep to file everywhere: spc f g
-;; goto line in file:       spc f l
-;; do ctrl-back to remove whole
-;; directory names when searching
-
 ;; ------------------
 ;; Keybindings (Doom-style)
 ;; ------------------
@@ -678,7 +708,7 @@ _q_ quit                 ^
     ;; project
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
-    "pa" '(my/add-project :which-key "add project")
+    "pa" '(my/add-project-root-marker :which-key "add project")
     "pf" '(project-find-file :which-key "find file in project")  ;; find file in project
     "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
     "pe" '(project-eshell :which-key "project eshell")
@@ -730,8 +760,10 @@ _q_ quit                 ^
     ;; avy bindings
     "z" 'avy-goto-char-timer ;; flash.nvim style
     "Z" 'avy-goto-word-1     ;; goto single char
-    "gl" 'avy-goto-line      ;; no more numbers
-    "gc" 'evil-avy-goto-char-in-line ;; no more numbers
+    "s" 'evil-avy-goto-char-in-line ;; goto char in line
+    "S" 'avy-goto-line      ;; no more numbers
+    "gc" 'evil-commentary ;; comment region
+    "gl" 'evil-commentary-line ;; comment region
 
     ;; window navigation (without resizing)
     "C-h" 'evil-window-left
