@@ -1,8 +1,8 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, inputs ... }:
 
 {
   imports = [
-    ../../common/home
+    ../../common/home/core
     inputs.nixcord.homeManagerModules.nixcord
     inputs.spicetify-nix.homeManagerModules.default
   ];
@@ -42,7 +42,7 @@
   # wm overrides
   #myCosmic.enable = true;
 
-  dev.general.enable = true;
-  dev.android.enable = false;
+  # dev.general.enable = true;
+  # dev.android.enable = false;
 }
 

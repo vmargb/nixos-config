@@ -14,6 +14,12 @@
 
   outputs = inputs@{ self, nixpkgs, home-manager, stylix, ... }:
     let
+      # extend nixpkgs.lib with auto-import
+      lib = nixpkgs.lib.extend (final: prev:
+        let
+          helpers = import ./lib/auto-import.nix { lib = prev; };
+        in helpers
+      );
       # load and activate these modules automatically
       baseModules = [ home-manager.nixosModules.home-manager ];
       desktopModules = baseModules ++ [ stylix.nixosModules.stylix ];
@@ -26,11 +32,12 @@
               home-manager.useGlobalPkgs = true; # avoid pkg duplication
               home-manager.useUserPackages = true; # store pkgs in bin
               home-manager.users.vmargb = import ./hosts/${name}/home.nix {
-                inherit inputs; # passes down source reference without loading
+                inherit inputs lib; # passes down source reference without loading
               };
               home-manager.users.vmargb.backupFileExtension = "hm-bak";
             }
           ];
+          specialArgs = { inherit lib; }
         };
     in {
       nixosConfigurations = {

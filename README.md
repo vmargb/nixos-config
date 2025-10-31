@@ -55,7 +55,7 @@ Remember to adjust `hostname` to match one of the hosts(or create your own)
 nix flake update
 ```
 
-## Architecture
+## Modules
 
 - **Common Configuration**: Shared across all systems:
   - `base.nix`: Universal system packages and settings in `common/system/`
