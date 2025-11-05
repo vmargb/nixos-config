@@ -23,7 +23,7 @@
       # load and activate these modules automatically
       baseModules = [ home-manager.nixosModules.home-manager ];
       desktopModules = baseModules ++ [ stylix.nixosModules.stylix ];
-      mkHost = { name, system, isDesktop ? true }: # helper to create new hosts
+      mkHost = { name, system, isDesktop ? true }: # helper function to create new hosts
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = (if isDesktop then desktopModules else baseModules) ++ [
@@ -32,12 +32,13 @@
               home-manager.useGlobalPkgs = true; # avoid pkg duplication
               home-manager.useUserPackages = true; # store pkgs in bin
               home-manager.users.vmargb = import ./hosts/${name}/home.nix {
-                inherit inputs lib; # passes down source reference without loading
+                inherit inputs lib; # pass inputs & lib without loading (lazy)
               };
               home-manager.users.vmargb.backupFileExtension = "hm-bak";
             }
           ];
-          specialArgs = { inherit lib; }
+          # pass extended lib to all nixos modules via specialArgs
+          specialArgs = { inherit lib; } # does not include home.nix
         };
     in {
       nixosConfigurations = {
@@ -47,4 +48,3 @@
       };
     };
 }
-

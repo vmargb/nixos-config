@@ -1,17 +1,13 @@
 ;; -*- lexical-binding: t; -*-
 
-;; disable built-in package.el
-;; (setq package-enable-at-startup nil)
+(setq package-enable-at-startup nil) ;; disable built-in package.el
 
 ;; =========================================================
 ;; Performance tweaks to run early in init
 ;; =========================================================
 
-;; temporarily increase GC threshold to max possible to avoid GC during startup
-(setq gc-cons-threshold most-positive-fixnum)
-
-;; enable native compilation
-(setq package-native-compile t)
+(setq gc-cons-threshold most-positive-fixnum) ;; temporarily increase GC threshold to max possible to avoid GC during startup
+(setq package-native-compile t) ;; enable native compilation
 
 ;; restore GC threshold after init to a high but reasonable value (8MB here)
 (add-hook 'emacs-startup-hook
@@ -33,3 +29,4 @@
 (setq scroll-margin 5)
 (setq make-backup-files nil)
 (setq auto-save-default nil)
+;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))

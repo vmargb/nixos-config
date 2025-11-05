@@ -7,13 +7,13 @@
       mainBar = {
         layer = "top";
         position = "top";
-        modules-left = [ "workspaces" ];
+        modules-left = [ "niri/workspaces" ];
         modules-center = [ "clock" ];
         modules-right = [ "pulseaudio" "network" "battery" "tray" ];
 
         clock = {
           format = "{:%a %b %d  %H:%M}";
-          on-click = "alacritty -e cal -y"; # terminal calendar
+          on-click = "foot -e cal -y"; # terminal calendar
         };
 
         pulseaudio = {

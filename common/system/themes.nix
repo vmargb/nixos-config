@@ -1,19 +1,12 @@
-{ lib, config, pkgs, ... }:
-
 {
-  # only apply if Stylix is available (so servers won’t complain)
-  stylix = lib.mkIf (config ? stylix) {
+  stylix = {
     enable = true;
 
-    # Wallpaper / background
-    image = "/home/vmargb/wallpapers/gruvbox.png";
+    image = "/home/vmargb/wallpapers/gruvbox.png";  # wallpapers path
+    # base16Scheme = "gruvbox-dark";  # for explicit theme
 
-    # you can use base16 themes, Catppuccin, etc.
-    # base16Scheme = "gruvbox-dark"; # optional manual theme
-    # stylix has built-in schemes too:
-    # scheme = "catppuccin-mocha";
+    polarity = "dark";  # or "light
 
-    # Font setup
     fonts = {
       serif = "Noto Serif";
       sansSerif = "Noto Sans";
@@ -21,14 +14,12 @@
       emoji = "Noto Color Emoji";
     };
 
-    # cursor theme
     cursor = {
       package = pkgs.capitaine-cursors;
       name = "Capitaine Cursors (Gruvbox)";
       size = 24;
     };
 
-    # GTK & Qt theming
     gtk = {
       enable = true;
       theme = {
@@ -43,7 +34,7 @@
 
     qt = {
       enable = true;
-      platformTheme = "gtk"; # unify Qt + GTK
+      platformTheme = "gtk";
     };
   };
 }

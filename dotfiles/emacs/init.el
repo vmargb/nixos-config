@@ -13,7 +13,7 @@
 ;;         Essentials (tldr)
 ;;-------------------------------------
 ;;               NOTE:
-;; searching is optimal inside a project
+;; search works best inside a project
 ;;       do: SPC p a (add project)
 ;;
 ;;    to create sessions/workspaces
@@ -26,36 +26,75 @@
 ;; goto file project:       spc f d
 ;; grep file project:       spc f g
 ;; goto line in file:       spc f l
+;;
 ;; do ctrl-back to remove whole
 ;; directory names when searching
 ;;
 ;;        ** Motions **
-;; goto word:               z
+;; goto anything:           z
 ;; goto char(current line): s
 ;; goto line number:        S
 ;; ====================================
 
-;; default package manager (will migrate to elpaca)
-(require 'package)
-(setq package-archives
-      '(("gnu"   . "https://elpa.gnu.org/packages/")
-        ("melpa" . "https://melpa.org/packages/")))
-(package-initialize)
-(unless package-archive-contents
-  (package-refresh-contents))
+;; -------------------------
+;; Elpaca package manager
+;; -------------------------
+;; Bootstrap Elpaca
+(defvar elpaca-installer-version 0.11)
+(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil :depth 1 :inherit ignore
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (<= emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                  ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                  ,@(when-let* ((depth (plist-get order :depth)))
+                                                      (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                  ,(plist-get order :repo) ,repo))))
+                  ((zerop (call-process "git" nil buffer t "checkout"
+                                        (or (plist-get order :ref) "--"))))
+                  (emacs (concat invocation-directory invocation-name))
+                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                  ((require 'elpaca))
+                  ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
+      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
 
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-(require 'use-package)
-(setq use-package-always-ensure t)
+(when (eq system-type 'windows-nt) ;; no symlink mode on windows only
+  (elpaca-no-symlink-mode))
 
-;; better GC management (optional)
-;; run first before packages
+(elpaca elpaca-use-package ;; use-package support
+  (elpaca-use-package-mode))
+
+(setq use-package-always-ensure t) ; always ensure
+(setq package-install-upgrade-built-in t) ; upgrade built-in packages
+
+;; -------------------------
+;; Better GC management (optional)
+;; -------------------------
+;; always load first
 (use-package gcmh
-  :ensure t
   :init
   (gcmh-mode 1))
-
 
 (setq clean-buffer-list-delay-general (* 60 60 24)) ; close buffers older than 1 day
 (defun close-unused-buffers () ;; more extreme, close all not visible
@@ -67,7 +106,9 @@
         (kill-buffer buf))))) ;; close
 
 
-(setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
+;; --------------------------------
+;;          ** Misc **
+;; --------------------------------
 
 ;; window dividers
 (setq window-divider-default-places t
@@ -75,9 +116,38 @@
       window-divider-default-right-width 1)
 (window-divider-mode 1)
 
+(defun split-below-follow ()
+  "Split the window horizontally and move focus to the new window."
+  (interactive)
+  (split-window-below)
+  (other-window 1))
 
+(defun split-right-follow ()
+  "Split the window vertically and move focus to the new window."
+  (interactive)
+  (split-window-right)
+  (other-window 1))
 ;; or whatever nerd font you want
 (set-face-attribute 'default nil :font "Iosevka NF-14")
+
+(setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
+
+
+;; --------------------------------
+;;          ** LANGS **
+;; --------------------------------
+;; temporary lang support without LSP
+(use-package kotlin-mode)
+(add-to-list 'auto-mode-alist '("\\.kt\\'" . kotlin-mode))
+(add-to-list 'auto-mode-alist '("\\.kts\\'" . kotlin-mode))
+
+(use-package nix-mode
+  :mode "\\.nix\\'")
+
+(setq-default indent-tabs-mode t) ; Use tabs for indentation
+(setq-default tab-width 4)        ; Tab is displayed as 4 spaces
+(setq c-basic-offset 4)
+(setq c-syntactic-indentation nil) ; disables advanced indent features that use spaces[web:1]
 
 ;; -------------------------
 ;; Theme and modeline (doom)
@@ -119,43 +189,44 @@
 ;; Hydra
 ;; ===========================
 (use-package hydra
-  :defer t)
-
-(defhydra hydra-theme-switcher (:hint nil)
+  :ensure t
+  :config
+  (defhydra hydra-theme-switcher (:hint nil)
+    "
+      Dark                ^Light^
+  ----------------------------------------------
+  _1_ doom-lantern     _z_ one-light 
+  _2_ doom-rouge       _x_ doom-ayu-light
+  _3_ doom-gruvbox     _c_ doom-gruvbox-light
+  _4_ doom-sourcerer   _c_ doom-gruvbox-light
+  _5_ doom-tokyo-night _v_ flatwhite
+  _6_ old-hope         _b_ tomorrow-day
+  _7_ doom-homage-black    ^
+  _8_ peacock              ^
+  _9_ doom-feather-dark    ^
+  _q_ quit                 ^
+  ^                        ^
   "
-     Dark                ^Light^
-----------------------------------------------
-_1_ doom-lantern     _z_ one-light 
-_2_ doom-rouge       _x_ doom-ayu-light
-_3_ doom-gruvbox     _c_ doom-gruvbox-light
-_4_ doom-sourcerer   _c_ doom-gruvbox-light
-_5_ doom-tokyo-night _v_ flatwhite
-_6_ old-hope         _b_ tomorrow-day
-_7_ doom-homage-black    ^
-_8_ peacock              ^
-_9_ doom-feather-dark    ^
-_q_ quit                 ^
-^                        ^
-"
 
-  ;; Dark
-  ("1" (load-theme 'doom-lantern)	     "one")
-  ("2" (load-theme 'doom-rouge)		     "rouge")
-  ("3" (load-theme 'doom-gruvbox)	     "gruvbox")
-  ("4" (load-theme 'doom-sourcerer)	     "sourcerer")
-  ("5" (load-theme 'doom-tokyo-night)	     "tokyo-night")
-  ("6" (load-theme 'doom-old-hope)	     "old-hope")
-  ("7" (load-theme 'doom-homage-black)	     "homage-black")
-  ("8" (load-theme 'doom-peacock)	     "peacock")
-  ("9" (load-theme 'doom-feather-dark)	     "feather-dark")
+    ;; Dark
+    ("1" (load-theme 'doom-lantern)	     "one")
+    ("2" (load-theme 'doom-rouge)		     "rouge")
+    ("3" (load-theme 'doom-gruvbox)	     "gruvbox")
+    ("4" (load-theme 'doom-sourcerer)	     "sourcerer")
+    ("5" (load-theme 'doom-tokyo-night)	     "tokyo-night")
+    ("6" (load-theme 'doom-old-hope)	     "old-hope")
+    ("7" (load-theme 'doom-homage-black)	     "homage-black")
+    ("8" (load-theme 'doom-peacock)	     "peacock")
+    ("9" (load-theme 'doom-feather-dark)	     "feather-dark")
 
-  ;; Light
-  ("z" (load-theme 'doom-one-light)	     "one-light")
-  ("x" (load-theme 'doom-ayu-light)	     "ayu-light")
-  ("c" (load-theme 'doom-gruvbox-light)	     "gruvbox-light")
-  ("v" (load-theme 'doom-flatwhite)	     "flatwhite")
-  ("b" (load-theme 'doom-opera-light)	     "opera-light")
-  ("q" nil))
+    ;; Light
+    ("z" (load-theme 'doom-one-light)	     "one-light")
+    ("x" (load-theme 'doom-ayu-light)	     "ayu-light")
+    ("c" (load-theme 'doom-gruvbox-light)	     "gruvbox-light")
+    ("v" (load-theme 'doom-flatwhite)	     "flatwhite")
+    ("b" (load-theme 'doom-opera-light)	     "opera-light")
+    ("q" nil))
+)
 
 
 ;; -----------------------------
@@ -182,19 +253,22 @@ _q_ quit                 ^
 ;; clear buffer and non buffer highlighting
 (use-package solaire-mode
   :ensure t
-  :hook (after-init . solaire-global-mode))
+  :hook (elpaca-after-init . solaire-global-mode))
 
 
 ;; auto resize panes on window switch
 (use-package golden-ratio
   :ensure t
-  :hook (after-init . golden-ratio-mode)
+  :hook (elpaca-after-init . golden-ratio-mode)
   :custom
   (golden-ratio-exclude-modes '(occur-mode)))
 
+; vertical candidates
+(use-package vertico
+  :init (vertico-mode))
+
 ;; floating command window with posframe and multiform commands(built-in)
 (use-package vertico-posframe
-  :ensure t
   :after vertico
   :custom
   (vertico-posframe-parameters
@@ -213,7 +287,7 @@ _q_ quit                 ^
 ;; padding around windows
 (use-package spacious-padding
   :ensure t
-  :hook (after-init . spacious-padding-mode))
+  :hook (elpaca-after-init . spacious-padding-mode))
 
 ;; distraction-free mode
 (use-package olivetti
@@ -281,7 +355,7 @@ _q_ quit                 ^
 
 
 ;; -----------------
-;; Treesitter setup
+;; Treesitter
 ;; -----------------
 ;; treesitter grammars don't work on windows
 ;;(use-package treesit-auto
@@ -291,6 +365,25 @@ _q_ quit                 ^
 ;;  (treesit-auto-add-to-auto-mode-alist 'all)  ; map all major modes to their tree-sitter versions
 ;;  (global-treesit-auto-mode)) ; enable treesit-auto globally
 
+;; -----------------
+;; LSP
+;; -----------------
+
+;; non-lsp goto def
+(use-package dumb-jump
+  :config
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate) ;; xref-backend
+  ;; override evil bindings for dumb-jump
+  (define-key evil-normal-state-map (kbd "M-.") #'xref-find-definitions)
+  (define-key evil-normal-state-map (kbd "M-,") #'xref-pop-marker-stack)
+  (setq xref-show-definitions-function #'xref-show-definitions-completing-read) ;; use completing-read
+)
+
+;; ------
+;; Magit
+;; ------
+(elpaca transient)
+(elpaca (magit :wait t))
 
 ;; ---------------------------------------------
 ;; Project management (built-in project.el)
@@ -324,8 +417,7 @@ When called interactively, prompt for dir or default to current directory."
 (setq xref-search-program 'ripgrep) ;; use ripgrep over grep
 
 ;; Harpoon, quick-switch between most common files
-(use-package harpoon
-  :ensure t)
+(use-package harpoon)
 
 ;; ---------------------------------------------
 ;; the difference between projects and sessions:
@@ -336,7 +428,6 @@ When called interactively, prompt for dir or default to current directory."
 ;; Session Persistence (easysession.el)
 ;; ---------------------------------------------
 (use-package easysession
-  :ensure t
   :custom
   (easysession-mode-line-misc-info t) ;; display in mode-line
   (easysession-save-interval (* 10 60)) ;; save the session every 10 minutes
@@ -384,7 +475,6 @@ When called interactively, prompt for dir or default to current directory."
   (setq dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
   (setq dashboard-banner-logo-title "Welcome Back!")
 
-  ;; Center it and keep it clean
   (setq dashboard-center-content t)
   (setq dashboard-vertically-center-content t)
   (setq dashboard-show-shortcuts nil)
@@ -392,49 +482,35 @@ When called interactively, prompt for dir or default to current directory."
   (setq dashboard-set-heading-icons nil)
   (setq dashboard-set-navigator nil)
 
-  ;; --- custom face style for menu text ---
+  ;; --- define custom face ---
   (defface my/dashboard-menu-face
     '((t (:height 1.3 :weight bold :foreground "#87cefa")))
     "Face for dashboard menu options.")
 
-  ;; --- custom Menu (text only, no icons) ---
+  ;; --- build custom menu ---
   (setq dashboard-init-info
         (concat
          "\n"
-         (propertize "  [p] Projects\n" 'face 'my/dashboard-menu-face)
-         (propertize "  [r] Recent Files\n" 'face 'my/dashboard-menu-face)
-         (propertize "  [m] Bookmarks\n" 'face 'my/dashboard-menu-face)
-         (propertize "  [a] Agenda\n" 'face 'my/dashboard-menu-face)
-         (propertize "  [q] Quit\n" 'face 'my/dashboard-menu-face)
+         "  [p] Projects\n"
+         "  [r] Recent Files\n"
+         "  [m] Bookmarks\n"
+         "  [a] Agenda\n"
+         "  [q] Quit\n"
          "\n"))
 
-  (setq dashboard-items '()) ;; disable defaults
+  ;; disable default sections
+  (setq dashboard-items '())
   (dashboard-setup-startup-hook)
 
   ;; --- keybindings ---
-  (defun my/dashboard-open-projects ()
-    (interactive)
-    (call-interactively #'project-switch-project))
-
-  (defun my/dashboard-open-recents ()
-    (interactive)
-    (call-interactively #'recentf))
-
-  (defun my/dashboard-open-bookmarks ()
-    (interactive)
-    (call-interactively #'bookmark-jump))
-
-  (defun my/dashboard-open-agenda ()
-    (interactive)
-    (org-agenda-list))
-
-  ;; Quit Emacs completely
-  (defun my/dashboard-quit ()
-    (interactive)
-    (save-buffers-kill-emacs))
+  (defun my/dashboard-open-sessions () (interactive) (call-interactively #'easysession-switch-to))
+  (defun my/dashboard-open-recents ()  (interactive) (call-interactively #'recentf))
+  (defun my/dashboard-open-bookmarks () (interactive) (call-interactively #'bookmark-jump))
+  (defun my/dashboard-open-agenda ()   (interactive) (org-agenda-list))
+  (defun my/dashboard-quit ()          (interactive) (save-buffers-kill-emacs))
 
   (defun my/dashboard-setup-keys ()
-    (local-set-key (kbd "p") #'my/dashboard-open-projects)
+    (local-set-key (kbd "p") #'my/dashboard-open-sessions)
     (local-set-key (kbd "r") #'my/dashboard-open-recents)
     (local-set-key (kbd "m") #'my/dashboard-open-bookmarks)
     (local-set-key (kbd "a") #'my/dashboard-open-agenda)
@@ -442,13 +518,11 @@ When called interactively, prompt for dir or default to current directory."
 
   (add-hook 'dashboard-mode-hook #'my/dashboard-setup-keys))
 
+
+
 ;; -------------------------
 ;; Mini Buffer Completion UX
 ;; -------------------------
-
-;; handles vertical display of candidates
-(use-package vertico
-  :init (vertico-mode))
 
 (use-package orderless
   :init
@@ -496,7 +570,7 @@ When called interactively, prompt for dir or default to current directory."
    (corfu-auto-prefix 2)
    (corfu-quit-no-match 'separator)))
 
-;; cape integration with corfu
+
 (use-package cape
   :init
   ;; add cape's completion functions to the global list
@@ -512,36 +586,6 @@ When called interactively, prompt for dir or default to current directory."
   :hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
   :init (all-the-icons-completion-mode))
 
-;; ------
-;; Magit
-;; ------
-(use-package magit
-  :defer t
-  :commands (magit-status))
-
-;; ----------------
-;; file tree (neotree)
-;; ----------------
-;; q: close, R: change root to current
-;; J: enter new path, y: copy to path
-;; c: create, d: delete, r: rename
-;; h: hidden files, 
-(use-package neotree
-  :ensure t
-  :defer t
-  :config
-  (setq neo-window-fixed-size nil) ;; makes neotree window resize flexibly
-  (setq neo-theme (if (display-graphic-p) 'icons 'arrow)) ;; use icons in GUI, arrows in terminal
-  ;; fit neotree window to contents
-  (defun neotree--fit-window (type path c)
-    "Resize neotree window to fit contents based on TYPE, with PATH and C unused."
-    (when (eq type 'directory)
-      (neo-buffer--with-resizable-window
-       (let ((fit-window-to-buffer-horizontally t))
-         (fit-window-to-buffer)))))
-  (add-hook 'neo-enter-hook #'neotree--fit-window))
-
-
 ;; -------
 ;; Org mode
 ;; -------
@@ -549,7 +593,9 @@ When called interactively, prompt for dir or default to current directory."
   :config
   (setq org-startup-indented t
         org-hide-emphasis-markers t
-        org-ellipsis " ▼"
+		org-pretty-entities t
+		org-fontify-done-headline t
+        org-ellipsis " ▼" ; ↴, ⬎, ⋱, …, ⤵, ➟, ➡
         org-log-done 'time)
   (require 'org-tempo))
 
@@ -568,8 +614,20 @@ When called interactively, prompt for dir or default to current directory."
   (org-appear-autosubmarkers t)
   (org-appear-autoemphasis t))
 
-;;(add-to-list 'load-path "~/.emacs.d/lisp/")
-;;(require 'org-color-text)
+;; highlighting text in org-mode
+(use-package org-remark
+  :defer t
+  :config
+  (org-remark-global-tracking-mode +1) ;; makes it work globally on all buffers
+  (org-remark-create "dark-pastel-green" '(:background "#3a6b35"))
+  (org-remark-create "dark-pastel-blue" '(:background "#34547a"))
+  (org-remark-create "dark-pastel-red" '(:background "#7a453a"))
+  (org-remark-create "dark-pastel-purple" '(:background "#6a4b7b"))
+  (org-remark-create "dark-pastel-orange" '(:background "#b56c49"))
+  (org-remark-create "dark-pastel-teal" '(:background "#3b7165"))
+  (org-remark-create "dark-pastel-brown" '(:background "#7b6046"))
+  (org-remark-create "dark-pastel-yellow" '(:background "#a6954e"))
+)
 
 
 ;; ------------------
@@ -620,26 +678,17 @@ When called interactively, prompt for dir or default to current directory."
         ("\\.html\\'" "Zen")
         ("\\.zip\\'" "unzip")))
 
+;; dired upgrade & file tree (dirvish.el)
+(use-package dirvish
+  :init
+  (dirvish-override-dired-mode) ; activate dirvish globally instead of default dired
+  :custom
+  (dirvish-quick-access-entries
+   '(("h" "~/"                          "Home")
+     ("d" "~/Downloads/"                "Downloads")
+     ("m" "/mnt/"                       "Drives")))
+)
 
-;; ------------------
-;; LSP
-;; ------------------
-(use-package eglot
-  :defer t
-  :hook ((prog-mode . eglot-ensure))
-  :config
-  (setq eglot-events-buffer-size 0) ; optional: disables the bulky *eglot-events* buffer
-  (setq eglot-autoshutdown t)) ; optional: shutdown server when last buffer is closed
-
-;; temporary lang support without LSP
-(unless (package-installed-p 'kotlin-mode)
-  (package-refresh-contents)
-  (package-install 'kotlin-mode))
-(add-to-list 'auto-mode-alist '("\\.kt\\'" . kotlin-mode))
-(add-to-list 'auto-mode-alist '("\\.kts\\'" . kotlin-mode))
-
-(use-package nix-mode
-  :mode "\\.nix\\'")
 
 ;; ------------------
 ;; Keybindings (Doom-style)
@@ -711,6 +760,7 @@ When called interactively, prompt for dir or default to current directory."
     "pa" '(my/add-project-root-marker :which-key "add project")
     "pf" '(project-find-file :which-key "find file in project")  ;; find file in project
     "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
+    "pk" '(project-kill-buffers :which-key "kill project buffers") ;; open dired at project root
     "pe" '(project-eshell :which-key "project eshell")
 
     ;; magit
@@ -719,7 +769,7 @@ When called interactively, prompt for dir or default to current directory."
 
     ;; tree
     "t"  '(:ignore t :which-key "tree")
-    "tt" '(neotree-toggle :which-key "toggle")
+    "tt" '(dirvish-side :which-key "toggle")
 
     ;; org
     "o"  '(:ignore t :which-key "org")
@@ -727,14 +777,23 @@ When called interactively, prompt for dir or default to current directory."
     "oc" '(org-capture :which-key "capture")
     "ol" '(org-store-link :which-key "current file link")
 
+    ;; remark
+    "r"  '(:ignore t :which-key "org")
+    "rr" '(org-remark-mode :which-key "enable highlights")
+    "rh" '(org-remark-mark :which-key "highlight")
+    "ry" '(org-remark-mark-yellow :which-key "highlight yellow")
+    "rl" '(org-remark-mark-line :which-key "mark line")
+    "rd" '(org-remark-delete :which-key "delete highlight")
+    "rc" '(org-remark-change :which-key "change highlight")
+
     ;; custom commands
     "c"  '(:ignore t :which-key "custom")
     "ct" '(hydra-theme-switcher/body :which-key "load themes")
 
     ;;window navigation (with resizing)
     "w"  '(:ignore t :which-key "windows")
-    "wL" '(split-window-right :which-key "split vertical")
-    "wJ" '(split-window-below :which-key "split horizontal")
+    "wL" '(split-right-follow :which-key "split vertical")
+    "wJ" '(split-below-follow :which-key "split horizontal")
     "wd" '(delete-window :which-key "delete window")
     "ww" '(other-window :which-key "other window")
     "wh" '(windmove-left :which-key "move left")
@@ -761,9 +820,8 @@ When called interactively, prompt for dir or default to current directory."
     "z" 'avy-goto-char-timer ;; flash.nvim style
     "Z" 'avy-goto-word-1     ;; goto single char
     "s" 'evil-avy-goto-char-in-line ;; goto char in line
-    "S" 'avy-goto-line      ;; no more numbers
+    "gl" 'avy-goto-line      ;; no more numbers
     "gc" 'evil-commentary ;; comment region
-    "gl" 'evil-commentary-line ;; comment region
 
     ;; window navigation (without resizing)
     "C-h" 'evil-window-left
@@ -790,47 +848,52 @@ When called interactively, prompt for dir or default to current directory."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("bf9df728461be9e8358a393dc3872f9ac6a7421fb613717fdf5b9e6026452461"
-     "7771c8496c10162220af0ca7b7e61459cb42d18c35ce272a63461c0fc1336015"
-     "5c8a1b64431e03387348270f50470f64e28dfae0084d33108c33a81c1e126ad6"
-     "13096a9a6e75c7330c1bc500f30a8f4407bd618431c94aeab55c9855731a95e1"
-     "4b88b7ca61eb48bb22e2a4b589be66ba31ba805860db9ed51b4c484f3ef612a7"
-     "6963de2ec3f8313bb95505f96bf0cf2025e7b07cefdb93e3d2e348720d401425"
-     "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
-     "1f292969fc19ba45fbc6542ed54e58ab5ad3dbe41b70d8cb2d1f85c22d07e518"
-     "c3c135e69890de6a85ebf791017d458d3deb3954f81dcb7ac8c430e1620bb0f1"
-     "7de64ff2bb2f94d7679a7e9019e23c3bf1a6a04ba54341c36e7cf2d2e56e2bcc"
-     "0d2c5679b6d087686dcfd4d7e57ed8e8aedcccc7f1a478cd69704c02e4ee36fe"
-     "ff24d14f5f7d355f47d53fd016565ed128bf3af30eb7ce8cae307ee4fe7f3fd0"
-     "dfb1c8b5bfa040b042b4ef660d0aab48ef2e89ee719a1f24a4629a0c5ed769e8"
-     "b9761a2e568bee658e0ff723dd620d844172943eb5ec4053e2b199c59e0bcc22"
-     "f053f92735d6d238461da8512b9c071a5ce3b9d972501f7a5e6682a90bf29725"
-     "f4d1b183465f2d29b7a2e9dbe87ccc20598e79738e5d29fc52ec8fb8c576fcfd"
-     "720838034f1dd3b3da66f6bd4d053ee67c93a747b219d1c546c41c4e425daf93"
-     "56044c5a9cc45b6ec45c0eb28df100d3f0a576f18eef33ff8ff5d32bac2d9700"
-     "4990532659bb6a285fee01ede3dfa1b1bdf302c5c3c8de9fad9b6bc63a9252f7"
-     "8c7e832be864674c220f9a9361c851917a93f921fedb7717b1b5ece47690c098"
-     "3f24dd8f542f4aa8186a41d5770eb383f446d7228cd7a3413b9f5e0ec0d5f3c0"
-     "df6dfd55673f40364b1970440f0b0cb8ba7149282cf415b81aaad2d98b0f0290"
-     "0325a6b5eea7e5febae709dab35ec8648908af12cf2d2b569bedc8da0a3a81c1"
-     "93011fe35859772a6766df8a4be817add8bfe105246173206478a0706f88b33d"
-     "b99ff6bfa13f0273ff8d0d0fd17cc44fab71dfdc293c7a8528280e690f084ef0"
-     "7ec8fd456c0c117c99e3a3b16aaf09ed3fb91879f6601b1ea0eeaee9c6def5d9"
-     "83550d0386203f010fa42ad1af064a766cfec06fc2f42eb4f2d89ab646f3ac01"
-     "5244ba0273a952a536e07abaad1fdf7c90d7ebb3647f36269c23bfd1cf20b0b8"
-     "9b9d7a851a8e26f294e778e02c8df25c8a3b15170e6f9fd6965ac5f2544ef2a9"
-     "b7a09eb77a1e9b98cafba8ef1bd58871f91958538f6671b22976ea38c2580755"
-     "2ab8cb6d21d3aa5b821fa638c118892049796d693d1e6cd88cb0d3d7c3ed07fc"
-     "a9eeab09d61fef94084a95f82557e147d9630fbbb82a837f971f83e66e21e5ad"
-     "5c7720c63b729140ed88cf35413f36c728ab7c70f8cd8422d9ee1cedeb618de5"
-     "72d9086e9e67a3e0e0e6ba26a1068b8b196e58a13ccaeff4bfe5ee6288175432"
-     "e8ceeba381ba723b59a9abc4961f41583112fc7dc0e886d9fc36fa1dc37b4079"
-     "dd4582661a1c6b865a33b89312c97a13a3885dc95992e2e5fc57456b4c545176"
-     "f64189544da6f16bab285747d04a92bd57c7e7813d8c24c30f382f087d460a33"
-     "e4a702e262c3e3501dfe25091621fe12cd63c7845221687e36a79e17cf3a67e0"
-     "b754d3a03c34cfba9ad7991380d26984ebd0761925773530e24d8dd8b6894738"
-     "f1e8339b04aef8f145dd4782d03499d9d716fdc0361319411ac2efc603249326"
-     default))
+   '("5eb797a41e8619dc1d8a2fe45ed4abc99d31bd836079acc4869763a5e055a693"
+	 "9624c1828474f6071d465b9ac5cc0b8d457803a466ddd861cdc142638a255154"
+	 "6665938b79d90cebac92a85953420179704efdbaec7a0e1a14ff90eee6541495"
+	 "dca64882039075757807f5cead3cee7a9704223fab1641a9f1b7982bdbb5a0e2"
+	 "b21e3ec892646747d647b34162e9d9e72abfd02ba60dd6e8fc51b2cc65d379dd"
+	 "bf9df728461be9e8358a393dc3872f9ac6a7421fb613717fdf5b9e6026452461"
+	 "7771c8496c10162220af0ca7b7e61459cb42d18c35ce272a63461c0fc1336015"
+	 "5c8a1b64431e03387348270f50470f64e28dfae0084d33108c33a81c1e126ad6"
+	 "13096a9a6e75c7330c1bc500f30a8f4407bd618431c94aeab55c9855731a95e1"
+	 "4b88b7ca61eb48bb22e2a4b589be66ba31ba805860db9ed51b4c484f3ef612a7"
+	 "6963de2ec3f8313bb95505f96bf0cf2025e7b07cefdb93e3d2e348720d401425"
+	 "4594d6b9753691142f02e67b8eb0fda7d12f6cc9f1299a49b819312d6addad1d"
+	 "1f292969fc19ba45fbc6542ed54e58ab5ad3dbe41b70d8cb2d1f85c22d07e518"
+	 "c3c135e69890de6a85ebf791017d458d3deb3954f81dcb7ac8c430e1620bb0f1"
+	 "7de64ff2bb2f94d7679a7e9019e23c3bf1a6a04ba54341c36e7cf2d2e56e2bcc"
+	 "0d2c5679b6d087686dcfd4d7e57ed8e8aedcccc7f1a478cd69704c02e4ee36fe"
+	 "ff24d14f5f7d355f47d53fd016565ed128bf3af30eb7ce8cae307ee4fe7f3fd0"
+	 "dfb1c8b5bfa040b042b4ef660d0aab48ef2e89ee719a1f24a4629a0c5ed769e8"
+	 "b9761a2e568bee658e0ff723dd620d844172943eb5ec4053e2b199c59e0bcc22"
+	 "f053f92735d6d238461da8512b9c071a5ce3b9d972501f7a5e6682a90bf29725"
+	 "f4d1b183465f2d29b7a2e9dbe87ccc20598e79738e5d29fc52ec8fb8c576fcfd"
+	 "720838034f1dd3b3da66f6bd4d053ee67c93a747b219d1c546c41c4e425daf93"
+	 "56044c5a9cc45b6ec45c0eb28df100d3f0a576f18eef33ff8ff5d32bac2d9700"
+	 "4990532659bb6a285fee01ede3dfa1b1bdf302c5c3c8de9fad9b6bc63a9252f7"
+	 "8c7e832be864674c220f9a9361c851917a93f921fedb7717b1b5ece47690c098"
+	 "3f24dd8f542f4aa8186a41d5770eb383f446d7228cd7a3413b9f5e0ec0d5f3c0"
+	 "df6dfd55673f40364b1970440f0b0cb8ba7149282cf415b81aaad2d98b0f0290"
+	 "0325a6b5eea7e5febae709dab35ec8648908af12cf2d2b569bedc8da0a3a81c1"
+	 "93011fe35859772a6766df8a4be817add8bfe105246173206478a0706f88b33d"
+	 "b99ff6bfa13f0273ff8d0d0fd17cc44fab71dfdc293c7a8528280e690f084ef0"
+	 "7ec8fd456c0c117c99e3a3b16aaf09ed3fb91879f6601b1ea0eeaee9c6def5d9"
+	 "83550d0386203f010fa42ad1af064a766cfec06fc2f42eb4f2d89ab646f3ac01"
+	 "5244ba0273a952a536e07abaad1fdf7c90d7ebb3647f36269c23bfd1cf20b0b8"
+	 "9b9d7a851a8e26f294e778e02c8df25c8a3b15170e6f9fd6965ac5f2544ef2a9"
+	 "b7a09eb77a1e9b98cafba8ef1bd58871f91958538f6671b22976ea38c2580755"
+	 "2ab8cb6d21d3aa5b821fa638c118892049796d693d1e6cd88cb0d3d7c3ed07fc"
+	 "a9eeab09d61fef94084a95f82557e147d9630fbbb82a837f971f83e66e21e5ad"
+	 "5c7720c63b729140ed88cf35413f36c728ab7c70f8cd8422d9ee1cedeb618de5"
+	 "72d9086e9e67a3e0e0e6ba26a1068b8b196e58a13ccaeff4bfe5ee6288175432"
+	 "e8ceeba381ba723b59a9abc4961f41583112fc7dc0e886d9fc36fa1dc37b4079"
+	 "dd4582661a1c6b865a33b89312c97a13a3885dc95992e2e5fc57456b4c545176"
+	 "f64189544da6f16bab285747d04a92bd57c7e7813d8c24c30f382f087d460a33"
+	 "e4a702e262c3e3501dfe25091621fe12cd63c7845221687e36a79e17cf3a67e0"
+	 "b754d3a03c34cfba9ad7991380d26984ebd0761925773530e24d8dd8b6894738"
+	 "f1e8339b04aef8f145dd4782d03499d9d716fdc0361319411ac2efc603249326"
+	 default))
  '(doom-modeline-check-simple-format t nil nil "Customized with use-package doom-modeline")
  '(package-selected-packages nil))
 (custom-set-faces
