@@ -14,6 +14,9 @@
           (lambda ()
             (setq gc-cons-threshold (* 8 1024 1024))))
 
+;; cache package directories
+(when (boundp 'load-path-filter-function) ;; emacs 30+
+  (setq load-path-filter-function #'load-path-filter-cache-directory-files))
 
 ;; -----------------------------
 ;; Default UI/UX behaviour
@@ -29,4 +32,4 @@
 (setq scroll-margin 5)
 (setq make-backup-files nil)
 (setq auto-save-default nil)
-;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+;;(add-to-list 'initial-frame-alist '(fullscreen . maximized)) ;; make fullscreen

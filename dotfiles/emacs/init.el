@@ -1,7 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 ;; ============================
-;;    *** Dependencies ***
+;;    ** Dependencies **
 ;; ============================
 ;; - Emacs 29 minimum (treesitter, LSP)
 ;; - rg (ripgrep)
@@ -13,27 +13,25 @@
 ;;         Essentials (tldr)
 ;;-------------------------------------
 ;;               NOTE:
-;; search works best inside a project
-;;       do: SPC p a (add project)
+;; search works best in a project (git)
+;;    do: SPC p a (add non-git project)
 ;;
-;;    to create sessions/workspaces
-;;       do: SPC e S
+;; to create sessions/workspaces
+;;    do: SPC e S (easysession-save)
 ;;
 ;;-------------------------------------
 ;;        ** Goto file/dir **
 ;; goto open buffers:       spc b b
 ;; goto file in dir:        spc f f
-;; goto file project:       spc f d
-;; grep file project:       spc f g
+;; goto file in project:    spc f d
+;; grep file in project:    spc f g
 ;; goto line in file:       spc f l
 ;;
-;; do ctrl-back to remove whole
-;; directory names when searching
-;;
 ;;        ** Motions **
-;; goto anything:           z
+;; goto anything:           S (search)
 ;; goto char(current line): s
-;; goto line number:        S
+;; goto char(anywhere):     K
+;; goto line number:        gl (goto line)
 ;; ====================================
 
 ;; -------------------------
@@ -96,8 +94,7 @@
   :init
   (gcmh-mode 1))
 
-(setq clean-buffer-list-delay-general (* 60 60 24)) ; close buffers older than 1 day
-(defun close-unused-buffers () ;; more extreme, close all not visible
+(defun close-unused-buffers () ;; close buffers not visible
   (interactive)
   (let ((buffers (buffer-list)))
     (dolist (buf buffers)
@@ -127,9 +124,9 @@
   (interactive)
   (split-window-right)
   (other-window 1))
-;; or whatever nerd font you want
-(set-face-attribute 'default nil :font "Iosevka NF-14")
 
+;; or whatever nerd font you want
+(set-face-attribute 'default nil :font "Iosevka NF Medium-14")
 (setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
 
 
@@ -148,6 +145,22 @@
 (setq-default tab-width 4)        ; Tab is displayed as 4 spaces
 (setq c-basic-offset 4)
 (setq c-syntactic-indentation nil) ; disables advanced indent features that use spaces[web:1]
+
+;; function to reset M-x compile
+(defun my-compile-reset ()
+  "Prompt for a compile command every time."
+  (interactive)
+  (setq compile-command nil) ;; set compile-command to nil to force prompt
+  (call-interactively 'compile))
+
+;; auto formatter
+(use-package format-all
+  :commands format-all-mode
+  :hook (prog-mode . format-all-mode)
+  :config
+  (setq-default format-all-formatters
+                '(("C"     (astyle "--mode=c"))
+                  ("Shell" (shfmt "-i" "4" "-ci")))))
 
 ;; -------------------------
 ;; Theme and modeline (doom)
@@ -198,12 +211,12 @@
   _1_ doom-lantern     _z_ one-light 
   _2_ doom-rouge       _x_ doom-ayu-light
   _3_ doom-gruvbox     _c_ doom-gruvbox-light
-  _4_ doom-sourcerer   _c_ doom-gruvbox-light
-  _5_ doom-tokyo-night _v_ flatwhite
-  _6_ old-hope         _b_ tomorrow-day
-  _7_ doom-homage-black    ^
+  _4_ doom-sourcerer   _v_ flatwhite
+  _5_ doom-tokyo-night _b_ tomorrow-day
+  _6_ old-hope         _n_ modus-operandi-tinted
+  _7_ doom-pine            ^
   _8_ peacock              ^
-  _9_ doom-feather-dark    ^
+  _9_ doom-moonlight       ^
   _q_ quit                 ^
   ^                        ^
   "
@@ -215,9 +228,9 @@
     ("4" (load-theme 'doom-sourcerer)	     "sourcerer")
     ("5" (load-theme 'doom-tokyo-night)	     "tokyo-night")
     ("6" (load-theme 'doom-old-hope)	     "old-hope")
-    ("7" (load-theme 'doom-homage-black)	     "homage-black")
+    ("7" (load-theme 'doom-pine)	     "pine")
     ("8" (load-theme 'doom-peacock)	     "peacock")
-    ("9" (load-theme 'doom-feather-dark)	     "feather-dark")
+    ("9" (load-theme 'doom-moonlight)	     "feather-dark")
 
     ;; Light
     ("z" (load-theme 'doom-one-light)	     "one-light")
@@ -225,6 +238,7 @@
     ("c" (load-theme 'doom-gruvbox-light)	     "gruvbox-light")
     ("v" (load-theme 'doom-flatwhite)	     "flatwhite")
     ("b" (load-theme 'doom-opera-light)	     "opera-light")
+    ("n" (load-theme 'modus-operandi-tinted) "modus-operandi")
     ("q" nil))
 )
 
@@ -286,14 +300,12 @@
 
 ;; padding around windows
 (use-package spacious-padding
-  :ensure t
   :hook (elpaca-after-init . spacious-padding-mode))
 
 ;; distraction-free mode
 (use-package olivetti
-  :ensure t
   :init
-  (setq olivetti-body-width 80)  ;; makes the writing area 80 columns wide
+  (setq olivetti-body-width 90)  ;; makes the writing area 90 columns wide
 
   :config
   ;; optionally enable olivetti-mode automatically in text and org modes
@@ -309,12 +321,16 @@
   (if olivetti-mode
       (progn
         (display-line-numbers-mode -1)  ;; disable line numbers
-        (text-scale-set 2)) ;; increase font size by 2 steps
+        ;;(text-scale-set 2) ;; doube text ssize
+	  )
     ;; Restore defaults when disabling
     (display-line-numbers-mode 1)
-    (text-scale-set 0)))
+    ;;(text-scale-set 0)
+  ))
 
 (add-hook 'olivetti-mode-hook #'my/olivetti-setup)
+
+(use-package focus)
 
 ;; -----------------
 ;; Evil setup
@@ -370,6 +386,8 @@
 ;; -----------------
 
 ;; non-lsp goto def
+;; if there's no git repo, add a ".dumbjump" root marker
+;; to allow for local project-wide search
 (use-package dumb-jump
   :config
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate) ;; xref-backend
@@ -413,7 +431,7 @@ When called interactively, prompt for dir or default to current directory."
       (message "Added .project.el marker to %s" dir))))
 
 ;; let project.el identify root markers (emacs 29)
-(setq project-vc-extra-root-markers '(".project.el" ".projectile"))
+(setq project-vc-extra-root-markers '(".project.el" ".projectile" ".dumbjump"))
 (setq xref-search-program 'ripgrep) ;; use ripgrep over grep
 
 ;; Harpoon, quick-switch between most common files
@@ -523,26 +541,24 @@ When called interactively, prompt for dir or default to current directory."
 ;; -------------------------
 ;; Mini Buffer Completion UX
 ;; -------------------------
-
 (use-package orderless
   :init
   (setq completion-styles '(orderless basic) ;; use orderless, then basic
         completion-category-defaults nil
         completion-category-overrides '((file (styles basic partial-completion)))
-	;; show updates in a fuzzy style
+	;; fuzzy-first matching: flex over literal/regexp
 	orderless-matching-styles '(orderless-flex orderless-literal orderless-regexp)))
 
 ;; icons for orderless matches
 (use-package marginalia
   :init (marginalia-mode))
 
-;; does the searching
+;; fd, ripgrep search for large projects
 (use-package consult
   :bind (("C-s" . consult-line)
          ("C-x b" . consult-buffer)
          ("M-y" . consult-yank-pop)
          ("C-c h" . consult-history)))
-
 
 ;; embark integration with consult
 (use-package embark
@@ -576,6 +592,7 @@ When called interactively, prompt for dir or default to current directory."
   ;; add cape's completion functions to the global list
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev))
+
 
 ;; context indicator in code
 (use-package breadcrumb
@@ -614,11 +631,10 @@ When called interactively, prompt for dir or default to current directory."
   (org-appear-autosubmarkers t)
   (org-appear-autoemphasis t))
 
-;; highlighting text in org-mode
 (use-package org-remark
   :defer t
   :config
-  (org-remark-global-tracking-mode +1) ;; makes it work globally on all buffers
+  (org-remark-global-tracking-mode +1) ;; work globally on all buffers
   (org-remark-create "dark-pastel-green" '(:background "#3a6b35"))
   (org-remark-create "dark-pastel-blue" '(:background "#34547a"))
   (org-remark-create "dark-pastel-red" '(:background "#7a453a"))
@@ -626,9 +642,7 @@ When called interactively, prompt for dir or default to current directory."
   (org-remark-create "dark-pastel-orange" '(:background "#b56c49"))
   (org-remark-create "dark-pastel-teal" '(:background "#3b7165"))
   (org-remark-create "dark-pastel-brown" '(:background "#7b6046"))
-  (org-remark-create "dark-pastel-yellow" '(:background "#a6954e"))
 )
-
 
 ;; ------------------
 ;; Terminal and help
@@ -649,12 +663,12 @@ When called interactively, prompt for dir or default to current directory."
 ;; dired-do-rename: R, dired-create-directory: +
 ;; dired-do-copy: C(specify copy dir), dired-do-delete: D
 ;; move: R (specify new dir with file name)
+
+(setq dired-create-destination-dirs t) ;; create new directories during move/copy
+;;(setq dired-create-destination-dirs-on-trailing-dirsep t) ;; trailling slash = directory (optional)
+
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
-
-;; beautiful dired
-(use-package diredfl
-  :hook (dired-mode . diredfl-mode))
 
 ;; wdired
 ;; C-x C-q: enter wdired
@@ -726,6 +740,8 @@ When called interactively, prompt for dir or default to current directory."
     "bi" '(ibuffer :which-key "ibuffer")
     "bc" '(clean-buffer-list :which-key "clean unused buffers")
     "bC" '(close-unused-buffers :which-key "clean buffers not visible")
+    "bn" '(next-buffer :which-key "next buffer")
+    "bp" '(previous-buffer :which-key "previous buffer")
 
     ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
@@ -786,15 +802,17 @@ When called interactively, prompt for dir or default to current directory."
     "rd" '(org-remark-delete :which-key "delete highlight")
     "rc" '(org-remark-change :which-key "change highlight")
 
-    ;; custom commands
+    ;; compile
     "c"  '(:ignore t :which-key "custom")
-    "ct" '(hydra-theme-switcher/body :which-key "load themes")
+    "cc" '(compile :which-key "compile")
+    "cr" '(my-compile-reset :which-key "compile")
 
     ;;window navigation (with resizing)
     "w"  '(:ignore t :which-key "windows")
     "wL" '(split-right-follow :which-key "split vertical")
     "wJ" '(split-below-follow :which-key "split horizontal")
     "wd" '(delete-window :which-key "delete window")
+    "wD" '(delete-other-windows :which-key "delete other window")
     "ww" '(other-window :which-key "other window")
     "wh" '(windmove-left :which-key "move left")
     "wl" '(windmove-right :which-key "move right")
@@ -807,6 +825,7 @@ When called interactively, prompt for dir or default to current directory."
 
     "z"  '(:ignore t :which-key "zen mode")
     "zz" '(olivetti-mode :which-key "olivetti mode")
+    "zf" '(focus-mode :which-key "focus mode")
     "zl" '(display-line-numbers-mode :which-key "toggle line")
 
     "SPC" '(execute-extended-command :which-key "M-x") ; A better M-x
@@ -817,9 +836,9 @@ When called interactively, prompt for dir or default to current directory."
     :states '(normal visual)
     :keymaps 'override
     ;; avy bindings
-    "z" 'avy-goto-char-timer ;; flash.nvim style
-    "Z" 'avy-goto-word-1     ;; goto single char
+    "S" 'avy-goto-char-timer ;; flash.nvim style
     "s" 'evil-avy-goto-char-in-line ;; goto char in line
+    "K" 'avy-goto-word-1     ;; goto single char
     "gl" 'avy-goto-line      ;; no more numbers
     "gc" 'evil-commentary ;; comment region
 
@@ -848,7 +867,35 @@ When called interactively, prompt for dir or default to current directory."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("5eb797a41e8619dc1d8a2fe45ed4abc99d31bd836079acc4869763a5e055a693"
+   '("f2d71f01992bd48d21a3190c95a52de250b20f1de594d185ca3ab7de428a56c8"
+	 "4d12469f94f29f44958a3173a74985f1b6aa383f933a49735d07c3304d77c810"
+	 "cc8beb55d871fb8a0436905556c64a63689d65d7d3bc8376c9f04367d0e89d91"
+	 "8e03d6225a1bb55487a643ee359b0c3b620fbc48ea02c2369b07eaaf14dacf3d"
+	 "d2f96f82a08e5ce6a8cebcca90dcc08762a0c68ba836f3f6a38fc9b67a8e2530"
+	 "19df357062d81949f6b2e7f70cd87eb9c112c7a23d2128826468e536b038a085"
+	 "545a268abdb70a28a299242bb79daf7cf1f088ddcbe9518c9d754a6f6159feb6"
+	 "3e371167a709445163dcbd06850eadd54709f45eae0c546e94760724516c6006"
+	 "ac4ab3921322aaa6aec49d1268337ec28f88c9ee49fa9cb284d145388fb928a8"
+	 "d978a2d7c42875682d1d3260b2766f81ded2e3b908148d77283b6a972b768c89"
+	 "7ef4bf16bb25e0bcbf1dd198165e608d81c98f0453dded7d32aee9f165cf72d1"
+	 "4d0dde5a6b07849e72f93b05b370612ea8b84afb72cc8120217cc9f5aed0fd53"
+	 "e5248f88e64f3e06f0d9a8266f777f7e247c268765a649b7d07ef13ea62a51e2"
+	 "cbd687e0a602f873321dcf3cf24351c1334ee3d3f222529594397663ca2ce173"
+	 "42493c75393a0fedee66afc08e6de2c0e95b5764c5b9c39c9544e24212ad1e97"
+	 "18b73ae04a60c4a829f9ad06f17bf82300b27d3ceea497f236cec00b31866cde"
+	 "655bcb760f8113d91bcd2622527e081a2c1a05dceae8a9d23619caea9711ee30"
+	 "a22bd438c40a16bf2b0beac82d7fc60815c898646733e8d86d0068d2753ddd98"
+	 "30e605d418d00c070d4d8d0db14b2510f98c0ac955e68c20322bcb5eb624f18e"
+	 "b38cdb86997b75583bfa1ab60996a21b018e93c5f55a329bb6d1e110efca09bc"
+	 "cbeb83ea9d4e67a8fadf34ffb5603d20dc1554791751e8fdf69250e02c564fc2"
+	 "6410beae3c7fcd6b983f71fd09d75299015c2e1a93f4b6ccbc63ee79f1cba5a6"
+	 "7b52b206b53a9d95b45cdd1baad939dbf54609543e0f88ddb394e822cb129e81"
+	 "9393ed69ec24d2e1e41f60d7f3c1dc6eb3ae071da3e5991a05a0f77d8d236f30"
+	 "59473a9ba1a0f27e61e304e3a08be0c8ebb56a36c0840bfa2e8e614a61c0b369"
+	 "0af624df9b720a0085a55785338977d5fe85627a4a5adab44feff97d1eb60829"
+	 "6dfbfe942d5c75d2387cbd5946ff3fe76fa6d247c95b1c5b72e5dcddc61ed539"
+	 "9a4cb3e932a631c4b29129a865c6aa6c6877faa5e9188c7aa13e82e7f2241906"
+	 "5eb797a41e8619dc1d8a2fe45ed4abc99d31bd836079acc4869763a5e055a693"
 	 "9624c1828474f6071d465b9ac5cc0b8d457803a466ddd861cdc142638a255154"
 	 "6665938b79d90cebac92a85953420179704efdbaec7a0e1a14ff90eee6541495"
 	 "dca64882039075757807f5cead3cee7a9704223fab1641a9f1b7982bdbb5a0e2"
