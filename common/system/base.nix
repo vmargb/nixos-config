@@ -32,8 +32,8 @@
     rsync
   ];
 
-  time.timeZone = "BST";
-  i18n.defaultLocale = "en_US.UTF-8";
+  time.timeZone = "Europe/London";
+  i18n.defaultLocale = "en_GB.UTF-8";
 
   # enable and configure SSH
   services.openssh = {

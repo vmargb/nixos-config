@@ -6,6 +6,7 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     stylix.url = "github:nix-community/stylix";
+    stylix.inputs.nixpkgs.follows = "nixpkgs";
     nixcord.url = "github:kaylorben/nixcord";
     nixcord.inputs.nixpkgs.follows = "nixpkgs";
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
@@ -16,35 +17,29 @@
 
   outputs = inputs@{ self, nixpkgs, home-manager, stylix, ... }:
     let
-      # extend nixpkgs.lib with auto-import
-      lib = nixpkgs.lib.extend (final: prev:
-        let
-          helpers = import ./lib/auto-import.nix { lib = prev; };
-        in helpers
-      );
-      # load and activate these modules automatically
+      lib = nixpkgs.lib;
       baseModules = [ home-manager.nixosModules.home-manager ];
       desktopModules = baseModules ++ [ stylix.nixosModules.stylix ];
-      mkHost = { name, system, isDesktop ? true }: # helper function to create new hosts
+
+      # helper function to create hosts with explicit module composition
+      mkHost = { name, system, isDesktop ? true }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = (if isDesktop then desktopModules else baseModules) ++ [
             ./hosts/${name}/configuration.nix
             {
-              home-manager.useGlobalPkgs = true; # avoid pkg duplication
-              home-manager.useUserPackages = true; # store pkgs in bin
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
               home-manager.users.vmargb = import ./hosts/${name}/home.nix {
-                inherit inputs lib; # pass inputs & lib without loading (lazy)
+                inherit inputs lib;
               };
               home-manager.users.vmargb.backupFileExtension = "hm-bak";
             }
           ];
-          # pass extended lib to all nixos modules via specialArgs
-          specialArgs = { inherit lib; } # does not include home.nix
         };
     in {
       nixosConfigurations = {
-        laptop  = mkHost { name = "laptop";  system = "x86_64-linux"; }; # "aarch64-darwin" for Apple
+        laptop  = mkHost { name = "laptop";  system = "x86_64-linux"; };
         desktop = mkHost { name = "desktop"; system = "x86_64-linux"; };
         server  = mkHost { name = "server";  system = "aarch64-linux"; isDesktop = false; };
       };

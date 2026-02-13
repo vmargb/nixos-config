@@ -7,6 +7,11 @@
     home.packages = with pkgs; [
     ];
 
-    imports = lib.autoImportNix ./.; # auto import all core files
+    imports = [
+      ./rust.nix
+      ./cpp.nix
+      ./python.nix
+      ./node.nix
+    ]
   };
 }

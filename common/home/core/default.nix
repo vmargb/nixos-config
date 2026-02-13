@@ -14,6 +14,16 @@
       libnotify # notifcation send
     ];
 
-    imports = lib.autoImportNix ./.; # auto import all core files
+    imports = [
+      ./dotfiles.nix
+      ./editors.nix
+      ./shells.nix
+      ./foot.nix
+      ./niri.nix
+      ./rofi.nix
+      ./waybar.nix
+      ./greetd.nix
+      ./mako.nix
+    ]
   };
 }

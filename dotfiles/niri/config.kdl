@@ -1,6 +1,6 @@
 startup {
   command "waybar"
-  command "dunst"
+  command "mako"
   command "foot --server"
 }
 
