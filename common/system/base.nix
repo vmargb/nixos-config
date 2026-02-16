@@ -10,6 +10,8 @@
 
   # shared system packages
   environment.systemPackages = with pkgs; [
+    xwayland-satellite
+
     # terminal essentials
     git
     wget

@@ -126,6 +126,17 @@
 ;; --------------------------------
 ;;          ** LANGS **
 ;; --------------------------------
+
+;; global indent settings
+(setq-default indent-tabs-mode nil) ; Use spaces as tabs
+(setq-default tab-width 4) ; global 4 spaces for tabs
+(setq-default tab-stop-list (number-sequence 4 120 4))  ; Consistent columns
+
+(use-package dtrt-indent
+  :config
+  ;; automatic indentation detection
+  (dtrt-indent-global-mode 1))
+
 ;; temporary lang support without LSP
 (use-package kotlin-mode
   :mode ("\\.kt\\'" "\\.kts\\'"))
@@ -136,30 +147,11 @@
 (use-package go-mode
   :mode "\\.go\\'")
 
+(use-package lua-mode
+  :mode "\\.lua\\'")
+
 (use-package rust-mode
-  :mode "\\.rs\\'"
-  :hook ((rust-mode . (lambda ()
-                        (setq-local tab-width 4)
-                        (setq-local indent-tabs-mode nil)))))
-
-
-;; global indent settings
-(setq-default indent-tabs-mode nil) ; Use spaces as tabs
-(setq-default tab-width 4) ; global 4 spaces for tabs
-(setq-default tab-stop-list (number-sequence 4 120 4))  ; Consistent columns
-;; specific language overrides
-(add-hook 'js-mode-hook
-          (lambda ()
-            (setq-local tab-width 2)
-            (setq-local js-indent-level 2)))
-(add-hook 'yaml-mode-hook
-          (lambda ()
-            (setq-local tab-width 2)
-            (setq-local yaml-indent-offset 2)))
-(add-hook 'css-mode-hook
-          (lambda ()
-            (setq-local tab-width 2)
-            (setq-local css-indent-offset 2)))
+  :mode "\\.rs\\'")
 
 ;; compile code quickly (quickrun.el)
 (use-package quickrun
@@ -209,7 +201,7 @@
 (use-package doom-themes
   :config
   (doom-themes-org-config)
-  (load-theme 'doom-old-hope t))
+  (load-theme 'doom-challenger-deep t))
 
 ;; need to run M-x all-the-icons-install-fonts
 (use-package all-the-icons
@@ -364,7 +356,7 @@
 
 (add-hook 'olivetti-mode-hook #'my/olivetti-setup)
 
-;;(use-package focus) ;; twilight.nvim
+;;(use-package focus)
 
 ;; -----------------
 ;; Evil setup
@@ -459,7 +451,7 @@ when called, prompt for dir or default to current directory"
 
 ;; ---------------------------------------------
 ;; the difference between projects and sessions:
-;; 'projects' are simply all your git repos
+;; 'projects' are simply your git repos
 ;; whereas 'sessions' are workspaces that persist
 ;; your window and buffer configurations for a project
 ;; ---------------------------------------------
@@ -863,7 +855,7 @@ when called, prompt for dir or default to current directory"
     ;; compile
     "c"  '(:ignore t :which-key "custom")
     "cc" '(compile :which-key "compile")
-    "cr" '(compile-reset :which-key "compile")
+    "cr" '(compile-reset :which-key "reset")
 
     ;;window navigation (with resizing)
     "w"  '(:ignore t :which-key "windows")
@@ -925,7 +917,9 @@ when called, prompt for dir or default to current directory"
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("2672cbaed4e6a6c61df4cbf665ff7ceb49cabf2f534f857f3927bab59e87ac61"
+   '("6272c88f9b805450b8090b8536050853558e07b69ebf68df4bccdb10e818474b"
+     "4c4c36513edb1edd045f8170c46563bfbb8a2bfa3a80c8c478bdde204313e8b6"
+     "2672cbaed4e6a6c61df4cbf665ff7ceb49cabf2f534f857f3927bab59e87ac61"
      "b33f1f59690615cef8ea9043659735289c54b0cfaf8b42e5c16651c0529a82fc"
      "1107071694e48770dfaeb2042b5d2b300efa0a01bfdfe8a9526347fe6f2cc698"
      "b184ec8abf5da1fe5cec54a366b71a02a5e54b592298dd5ebfb3e322848b58d8"

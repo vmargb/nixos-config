@@ -38,11 +38,10 @@
     home.sessionVariables = {
       EDITOR = "nvim";
       VISUAL = "nvim";
-      SHELL = "${pkgs.${config.myShell.default}}/bin/${config.myShell.default}";
     };
 
     ## add ~/.local/bin to PATH for all shells and GUI apps
-    home.sessionPath = [ "$HOME/.local/bin" ];
+    home.sessionPath = [ "~/.local/bin" ];
 
     ## Starship configuration
     home.file.".config/starship.toml".text = ''
