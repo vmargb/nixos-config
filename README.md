@@ -1,7 +1,6 @@
-
 # A Bird's-eye view
 
-My modular NixOS, Flakes & Home Manager config designed for multiple hosts. This setup is preprepared with Niri, Waybar, Rofi including other opinionated choices that I personally use. It is also [Expandable](#expanding) without adding complexity.
+My modular NixOS, Flakes & Home Manager config with multiple hosts. This setup is uses Niri & Noctalia-shell as well as other opinionated choices that I personally use. It is also [Expandable](#expanding) without adding complexity.
 
 ```
 nix-config/
@@ -47,34 +46,23 @@ or
 ```bash
 sudo nixos-rebuild switch --flake github:vmargb/nixos-config#hostname
 ```
-
-Remember to adjust `hostname` to match one of the hosts(or create your own)
+Remember to add your own `hardware-configuration.nix` and
+adjust `hostname` to match one of the hosts(or create your own)
 
 ### Update Dependencies
 ```bash
 nix flake update
 ```
 
-## Modules
-
-- **Common Configuration**: Shared across all systems:
-  - `base.nix`: Universal system packages and settings in `common/system/`
-  - `default.nix`: Modular user-level configs (Waybar, Rofi, etc.) in `common/home/`
-  
-- **Host-Specific Profiles**: Isolated configurations for each machine (laptop, desktop, server) with their own:
-  - `configuration.nix`: `system/base.nix` overrides and extra system settings
-  - `home.nix`: `home/default.nix` overrides and extra home settings
-
 ## Expanding
 
 ### Adding a New Host
-1. Create a directory under `hosts/` with `configuration.nix` and `home.nix`
-2. Import necessary common modules in the configuration files
-3. Add the host to `flake.nix` with: `{host} = mkHost "{host}" "x86_64-linux";`
+1. Create a directory under `hosts/` with `configuration.nix`, `home.nix` and your generated `hardware-configuration.nix`
+2. Import necessary common modules in both configuration files
+3. Add the host to `flake.nix` with: `{host} = mkHost { name = "{host}"; system = "{system}"; }`
 
 ### Creating New Modules
-1. Add Nix module in `common/home/`
-2. Either import it in `common/home/default.nix` or directly into `home.nix`
+1. Add Nix module in `common/home/` and import it into your `home.nix`
 
 **Note:** If you don't want to use Nix, add the config to `dotfiles/`, `dotfiles.nix` will automatically handle the symlink for you on the next rebuild.
 

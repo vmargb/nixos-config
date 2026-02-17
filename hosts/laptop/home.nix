@@ -2,6 +2,8 @@
 
 {
   imports = [
+    ../../common/home/display/wm.nix
+    ../../common/home/display/noctalia.nix
     ../../common/home/core
   ];
 
@@ -10,12 +12,6 @@
 
   myDefaults.enableImports = true;
   myShell.default = "fish";
-
-  # vencord
-  programs.nixcord = {
-    enable = true;
-    client = "vencord";
-  };
 
   # Spicetify configuration
   # programs.spicetify = {

@@ -1,49 +1,68 @@
-startup {
-  command "waybar"
-  command "mako"
-  command "foot --server"
+spawn-at-startup {
+  spawn "foot --server"
 }
 
-keybinds {
-  mod = "Mod4" // leader key
+binds {
+  mod = "Mod4"
 
-  "Return" "exec footclient"
-  "D" "exec rofi -show drun"
-  "E" "exec emacsclient -c -a emacs"
+  bind "Return" { exec "footclient" }
+  bind "D"      { exec "rofi -show drun" }
+  bind "E"      { exec "emacsclient -c -a emacs" }
 
-  // change focus with vim keybindings
-  "H" "focus left"
-  "L" "focus right"
-  "J" "focus down"
-  "K" "focus up"
+  bind "H" { focus "left" }
+  bind "L" { focus "right" }
+  bind "J" { focus "down" }
+  bind "K" { focus "up" }
 
-  "Q" "close"
+  bind "Q" { close-window }
 
-  // mod + num
-  "1" "workspace 1"
-  "2" "workspace 2"
-  "3" "workspace 3"
-  "4" "workspace 4"
-  "5" "workspace 5"
-  "6" "workspace 6"
-  "7" "workspace 7"
-  "8" "workspace 8"
-  "9" "workspace 9"
+  bind "1" { workspace "1" }
+  bind "2" { workspace "2" }
+  bind "3" { workspace "3" }
+  bind "4" { workspace "4" }
+  bind "5" { workspace "5" }
+  bind "6" { workspace "6" }
+  bind "7" { workspace "7" }
+  bind "8" { workspace "8" }
+  bind "9" { workspace "9" }
 
+  bind "XF86AudioRaiseVolume" {
+    exec '''sh -c 'pactl set-sink-volume @DEFAULT_SINK@ +5% && \
+      notify-send -h string:x-canonical-private-synchronous:volume \
+      -a Volume "🔊 $(pactl get-sink-volume @DEFAULT_SINK@ | \
+        grep -oP "\d+%" | head -1)"' '''
+  }
 
-  // audio controls (+ mako via notify-send)
-  "XF86AudioRaiseVolume" "exec sh -c 'pactl set-sink-volume @DEFAULT_SINK@ +5% && notify-send -h string:x-canonical-private-synchronous:volume -a Volume \"🔊 $(pactl get-sink-volume @DEFAULT_SINK@ | grep -oP \"\\d+%\" | head -1)\"'"
-  "XF86AudioLowerVolume" "exec sh -c 'pactl set-sink-volume @DEFAULT_SINK@ -5% && notify-send -h string:x-canonical-private-synchronous:volume -a Volume \"🔉 $(pactl get-sink-volume @DEFAULT_SINK@ | grep -oP \"\\d+%\" | head -1)\"'"
-  "XF86AudioMute"        "exec sh -c 'pactl set-sink-mute @DEFAULT_SINK@ toggle && notify-send -h string:x-canonical-private-synchronous:volume -a Volume \"🔇 $(pactl get-sink-mute @DEFAULT_SINK@ | grep -q yes && echo Muted || echo Unmuted)\"'"
+  bind "XF86AudioLowerVolume" {
+    exec '''sh -c 'pactl set-sink-volume @DEFAULT_SINK@ -5% && \
+      notify-send -h string:x-canonical-private-synchronous:volume \
+      -a Volume "🔉 $(pactl get-sink-volume @DEFAULT_SINK@ | \
+        grep -oP "\d+%" | head -1)"' '''
+  }
 
-  // brightness controls (+ mako via notify-send)
-  "XF86MonBrightnessUp"   "exec sh -c 'brightnessctl set +5% && notify-send -h string:x-canonical-private-synchronous:brightness -a Brightness \"☀️ $(brightnessctl g | awk -v max=$(brightnessctl m) \"{printf \"%d%%\", \$1*100/max}\")\"'"
-  "XF86MonBrightnessDown" "exec sh -c 'brightnessctl set 5%- && notify-send -h string:x-canonical-private-synchronous:brightness -a Brightness \"🌙 $(brightnessctl g | awk -v max=$(brightnessctl m) \"{printf \"%d%%\", \$1*100/max}\")\"'"
+  bind "XF86AudioMute" {
+    exec '''sh -c 'pactl set-sink-mute @DEFAULT_SINK@ toggle && \
+      notify-send -h string:x-canonical-private-synchronous:volume \
+      -a Volume "🔇 $(pactl get-sink-mute @DEFAULT_SINK@ | \
+        grep -q yes && echo Muted || echo Unmuted)"' '''
+  }
 
-  // media playback
-  "XF86AudioPlay" "exec playerctl play-pause"
-  "XF86AudioNext" "exec playerctl next"
-  "XF86AudioPrev" "exec playerctl previous"
-  "XF86AudioStop" "exec playerctl stop"
+  bind "XF86MonBrightnessUp" {
+    exec '''sh -c 'brightnessctl set +5% && \
+      notify-send -h string:x-canonical-private-synchronous:brightness \
+      -a Brightness "☀️ $(brightnessctl g | \
+        awk -v max=$(brightnessctl m) "{printf \"%d%%\", $1*100/max}")"' '''
+  }
+
+  bind "XF86MonBrightnessDown" {
+    exec '''sh -c 'brightnessctl set 5%- && \
+      notify-send -h string:x-canonical-private-synchronous:brightness \
+      -a Brightness "🌙 $(brightnessctl g | \
+        awk -v max=$(brightnessctl m) "{printf \"%d%%\", $1*100/max}")"' '''
+  }
+
+  bind "XF86AudioPlay"  { exec "playerctl play-pause" }
+  bind "XF86AudioNext"  { exec "playerctl next" }
+  bind "XF86AudioPrev"  { exec "playerctl previous" }
+  bind "XF86AudioStop"  { exec "playerctl stop" }
 }
-

@@ -11,7 +11,6 @@
 
   # Laptop-specific packages
   environment.systemPackages = with pkgs; [
-    neovim
   ];
 
   # stylix overrides
@@ -22,5 +21,7 @@
   #};
 
   networking.networkmanager.wifi.powersave = true; # power saving for laptop only
+
+  system.stateVersion = "25.11"; # for nixos-rebuild compatibility, update when changing nixpkgs version
 }
 

@@ -11,8 +11,6 @@
 
   # Desktop-specific packages
   environment.systemPackages = with pkgs; [
-    xwayland-satellite
-    obs-studio
   ];
 
   # stylix overrides

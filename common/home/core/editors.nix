@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   programs.emacs = {
@@ -10,7 +10,6 @@
 
   programs.neovim = {
     enable = true;
-    # if you want a particular version or fork:
     # package = pkgs.neovim;
     viAlias = true;
     vimAlias = true;

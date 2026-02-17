@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:  # Base system config - things you're never going to change
+{ pkgs, ... }:  # Base system config - things you're never going to change
 
 {
   # user account
@@ -6,6 +6,31 @@
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
     shell = pkgs.bash; # make bash default shell at LOGIN
+  };
+
+  time.timeZone = "Europe/London";
+  i18n.defaultLocale = "en_GB.UTF-8";
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    warn-dirty = false;  # ignore uncommitted flake changes
+    auto-optimise-store = true;  # deduplicate store paths automatically
+  };
+
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";  # or "03:15" daily, "Sun 04:00" Sundays
+    options = "--delete-older-than 7d";  # keep 1 week of generations
+    persistent = true;  # catch missed runs
+  };
+
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";  # best for compression/speed
+    memoryPercent = 30;  # ~half your RAM
   };
 
   # shared system packages
@@ -33,9 +58,6 @@
     openssh
     rsync
   ];
-
-  time.timeZone = "Europe/London";
-  i18n.defaultLocale = "en_GB.UTF-8";
 
   # enable and configure SSH
   services.openssh = {
@@ -82,7 +104,7 @@
   # fonts
   fonts.packages = with pkgs; [
     (nerdfonts.override {
-      fonts = [ "FiraCode" "Iosevka" "VictorMono" "GeistMono" ];
+      fonts = [ "FiraCode" "Iosevka" "VictorMono" ];
     })
     inter
     noto-fonts
