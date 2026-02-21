@@ -1,10 +1,14 @@
 { config, lib, pkgs, ... }:
 
+let
+  cfg = config.dev.general;
+in
 {
   options.dev.general.enable = lib.mkEnableOption "Enable general dev tools and auto Nix module loading";
 
-  config = lib.mkIf config.dev.general.enable {
+  config = lib.mkIf cfg.enable {
     home.packages = with pkgs; [
+      # Add general dev tools here if needed
     ];
 
     imports = [
@@ -12,6 +16,6 @@
       ./cpp.nix
       ./python.nix
       ./node.nix
-    ]
+    ];
   };
 }

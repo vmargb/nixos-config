@@ -4,7 +4,6 @@
   imports = [
     ./hardware-configuration.nix
     ../../common/system/base.nix
-    ../../common/system/theme.nix
   ];
 
   networking.hostName = "laptop";
@@ -12,6 +11,22 @@
   # Laptop-specific packages
   environment.systemPackages = with pkgs; [
   ];
+  
+  programs.sway = {
+    enable = true;
+    wrapperFeatures.gtk = true;
+  };
+
+  # Required for swaylock to work
+  security.pam.services.swaylock = {};
+
+  # Portals for screen sharing and file picking
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    config.common.default = "*";
+  };
 
   # stylix overrides
   #stylix = {

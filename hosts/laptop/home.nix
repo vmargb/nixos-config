@@ -2,8 +2,11 @@
 
 {
   imports = [
-    ../../common/home/display/wm.nix
-    ../../common/home/display/noctalia.nix
+    ../../common/home/display/sway.nix
+    ../../common/home/display/waybar.nix
+    ../../common/home/display/mako.nix
+    ../../common/home/display/fuzzel.nix
+    ../../common/home/display/idle.nix
     ../../common/home/core
   ];
 
@@ -29,4 +32,6 @@
 
   # dev.general.enable = true;
   # dev.cpp.enable = true;
+
+  home.stateVersion = "25.11";
 }

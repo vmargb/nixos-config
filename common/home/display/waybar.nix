@@ -1,77 +1,65 @@
-{ config, ... }:
+{ pkgs, ... }:
 
 {
   programs.waybar = {
     enable = true;
-    settings = {
-      mainBar = {
+    # Using the list format [ { ... } ] as requested
+    settings = [
+      {
         layer = "top";
         position = "top";
-        modules-left = [ "niri/workspaces" ];
+        height = 34;
+        spacing = 4;
+        modules-left = [ "sway/workspaces" "sway/mode" "custom/spotify" ];
         modules-center = [ "clock" ];
-        modules-right = [ "pulseaudio" "network" "battery" "tray" ];
+        modules-right = [ "pulseaudio" "network" "cpu" "temperature" "memory" "battery" "tray" ];
 
-        clock = {
-          format = "{:%a %b %d  %H:%M}";
-          on-click = "foot -e cal -y"; # terminal calendar
+        "sway/workspaces" = {
+          disable-scroll = true;
+          all-outputs = true;
         };
 
-        pulseaudio = {
+        "custom/spotify" = {
+          exec = "${pkgs.playerctl}/bin/playerctl metadata --format '{{ artist }} - {{ title }}'";
+          interval = 2;
+          format = "  {}";
+          max-length = 30;
+          on-click = "${pkgs.playerctl}/bin/playerctl play-pause";
+        };
+
+        "temperature" = {
+          critical-threshold = 80;
+          format = "{icon} {temperatureC}°C";
+          format-icons = ["" "" ""];
+        };
+
+        "clock" = {
+          format = "  {:%H:%M | %a %d}";
+          tooltip-format = "<tt>{calendar}</tt>";
+        };
+
+        "pulseaudio" = {
           format = "{icon} {volume}%";
-          format-muted = " muted";
-          on-click = "pavucontrol";
-          on-scroll-up = "pamixer -i 5"; # volume up
-          on-scroll-down = "pamixer -d 5"; # volume down
-          format-icons = {
-            default = [ "" "" "" ];
-          };
+          format-icons = { default = ["" "" ""]; };
+          on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
         };
-
-        network = {
-          format-wifi = "  {essid}";
-          format-ethernet = " {ifname}";
-          tooltip = true;
-          on-click = "nm-connection-editor"; # networkmanager editor
-        };
-
-        battery = {
-          format = "{capacity}% {icon}";
-          format-icons = [ "" "" "" "" "" ];
-          interval = 30;
-          on-click = "foot -e acpi -V"; # show extra battery info in terminal
-        };
-      };
-    };
+      }
+    ];
 
     style = ''
-      * {
-        font-family: ${config.stylix.fonts.monospace.name}, monospace;
-        font-size: 12px;
-      }
-
       window#waybar {
-        background: ${config.stylix.baseColors.background};
-        color: ${config.stylix.baseColors.foreground};
+        background: transparent;
       }
-
-      #workspaces button {
-        padding: 0 6px;
-        color: ${config.stylix.baseColors.foreground};
+      .modules-left, .modules-center, .modules-right {
+        background: alpha(@base00, 0.9);
+        border: 1px solid @base01;
+        border-radius: 10px;
+        margin: 5px;
+        padding: 2px 12px;
       }
-
-      #workspaces button.focused {
-        background: ${config.stylix.baseColors.accent};
-        color: #ffffff;
-      }
-
-      #clock,
-      #pulseaudio,
-      #network,
-      #battery,
-      #tray {
-        padding: 0 10px;
-      }
+      #workspaces button { padding: 0 5px; color: @base05; }
+      #workspaces button.focused { color: @base0B; border-bottom: 2px solid @base0B; }
+      #custom-spotify { color: @base0B; }
     '';
   };
 }
-

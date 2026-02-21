@@ -11,23 +11,19 @@
             --asterisks \
             --user-menu \
             --sessions \
-            --default-session niri
+            --default-session sway
         '';
         user = "greeter";
       };
 
-      # only niri which is the main, sessions are appended
+      # sessions are appended
       # if other de's are enabled, such as cosmic.nix
       sessions = [
         {
-          name = "niri";
-          command = "${pkgs.niri}/bin/niri";
+          name = "sway";
+          command = "${pkgs.sway}/bin/sway";
         }
       ];
     };
   };
-
-  # stylix theming for tuigreet
-  stylix.targets.greetd.enable = true;
 }
-
