@@ -13,7 +13,6 @@
   home.packages = with pkgs; [
   ];
 
-  myDefaults.enableImports = true;
   myShell.default = "fish";
 
   # Spicetify configuration

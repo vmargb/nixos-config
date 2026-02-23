@@ -1,12 +1,15 @@
 ;; -*- lexical-binding: t; -*-
 
 ;; ============================
-;;    ** Dependencies **
+;;      ** Dependencies **
+;;  install with package-manager
 ;; ============================
 ;; - Emacs 29 minimum (treesitter, LSP)
 ;; - rg (ripgrep)
 ;; - fd (faster find)
 ;; - fzf (fuzzy finder)
+;; - zoxide (optional)
+;; - coreutils ('gls' mac-only)
 ;; ============================
 
 ;;=====================================
@@ -106,11 +109,14 @@
 
 (defun close-unused-buffers () ;; close buffers not visible
   (interactive)
-  (let ((buffers (buffer-list)))
+  (let* ((buffers (buffer-list))
+         (count 0))
     (dolist (buf buffers) ;; go through all buffers
       (when (and (not (buffer-modified-p buf)) ;; if not modified
                  (not (get-buffer-window buf 'visible))) ;; if not visible
-        (Kill-buffer buf))))) ;; close
+        (kill-buffer buf)
+        (setq count (1+ count)))) ;; increment buffer count
+    (message "Closed %d unused buffers" count)))
 
 (defun split-below-follow ()
   "Split the window horizontally and move focus to the new window."
@@ -125,9 +131,14 @@
   (other-window 1))
 
 ;; or whatever nerd font you want
-(set-face-attribute 'default nil :font "Iosevka NF Medium-14")
+;;(set-face-attribute 'default nil :font "Iosevka NF Medium-16")
+(set-frame-font "Iosevka Nerd Font 16" nil t)
 (setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
 
+;; fixes "ls" problem in dired for macos
+;; brew install coreutils for this to work
+(when (eq system-type 'darwin)
+  (setq insert-directory-program "/opt/homebrew/bin/gls"))
 
 ;; --------------------------------
 ;;          ** LANGS **
@@ -143,21 +154,18 @@
   ;; automatic indentation detection
   (dtrt-indent-global-mode 1))
 
-;; temporary lang support without LSP
-(use-package kotlin-mode
-  :mode ("\\.kt\\'" "\\.kts\\'"))
+;; -----------------
+;; Treesitter
+;; -----------------
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt)
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode))
 
-(use-package nix-mode
-  :mode "\\.nix\\'")
-
-(use-package go-mode
-  :mode "\\.go\\'")
-
-(use-package lua-mode
-  :mode "\\.lua\\'")
-
-(use-package rust-mode
-  :mode "\\.rs\\'")
+(use-package nix-ts-mode ;; explicit nix mode
+ :mode "\\.nix\\'")
 
 ;; compile code quickly (quickrun.el)
 (use-package quickrun
@@ -193,7 +201,7 @@
          (text-mode . yas-minor-mode)
          (conf-mode . yas-minor-mode))
   :init
-  (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
+  (setq yas-snippet-dirs '("~/.config/emacs/snippets"))
   :config
   (yas-global-mode 1))
 
@@ -207,15 +215,19 @@
 (use-package doom-themes
   :config
   (doom-themes-org-config)
-  (load-theme 'doom-challenger-deep t))
+  (load-theme 'doom-lantern t))
 
-;; need to run M-x all-the-icons-install-fonts
-(use-package all-the-icons
-  :if (display-graphic-p))
+;; need to run M-x nerd-icons-install-fonts
+(use-package nerd-icons
+  ;; :custom
+  ;; The Nerd Font you want to use in GUI
+  ;; "Symbols Nerd Font Mono" is the default and is recommended
+  ;; but you can use any other Nerd Font if you want
+  ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
+  )
 
 ;; run M-x nerd-icons-install-fonts
 (use-package doom-modeline
-  :after all-the-icons
   :init
   (doom-modeline-mode 1)
   :custom
@@ -233,50 +245,6 @@
   (doom-modeline-checker-simple-format t) ; compact check status
   (doom-modeline-hud t)          ; progress bar in file
   (doom-modeline-indent-info t)) ; show indentation settings
-
-
-;; ===========================
-;; Hydra
-;; ===========================
-(use-package hydra
-  :config
-  (defhydra hydra-theme-switcher (:hint nil)
-    "
-      Dark                ^Light^
-  ----------------------------------------------
-  _1_ doom-lantern     _z_ one-light
-  _2_ doom-rouge       _x_ doom-ayu-light
-  _3_ doom-gruvbox     _c_ doom-gruvbox-light
-  _4_ doom-sourcerer   _v_ flatwhite
-  _5_ doom-tokyo-night _b_ tomorrow-day
-  _6_ old-hope         _n_ modus-operandi-tinted
-  _7_ doom-pine            ^
-  _8_ peacock              ^
-  _9_ doom-moonlight       ^
-  _q_ quit                 ^
-  ^                        ^
-  "
-
-    ;; Dark
-    ("1" (load-theme 'doom-lantern)	     "one")
-    ("2" (load-theme 'doom-rouge)		     "rouge")
-    ("3" (load-theme 'doom-gruvbox)	     "gruvbox")
-    ("4" (load-theme 'doom-sourcerer)	     "sourcerer")
-    ("5" (load-theme 'doom-tokyo-night)	     "tokyo-night")
-    ("6" (load-theme 'doom-old-hope)	     "old-hope")
-    ("7" (load-theme 'doom-pine)	     "pine")
-    ("8" (load-theme 'doom-peacock)	     "peacock")
-    ("9" (load-theme 'doom-moonlight)	     "feather-dark")
-
-    ;; Light
-    ("z" (load-theme 'doom-one-light)	     "one-light")
-    ("x" (load-theme 'doom-ayu-light)	     "ayu-light")
-    ("c" (load-theme 'doom-gruvbox-light)	     "gruvbox-light")
-    ("v" (load-theme 'doom-flatwhite)	     "flatwhite")
-    ("b" (load-theme 'doom-opera-light)	     "opera-light")
-    ("n" (load-theme 'modus-operandi-tinted) "modus-operandi")
-    ("q" nil))
-  )
 
 
 ;; -----------------------------
@@ -330,39 +298,37 @@
   :config
   (vertico-posframe-mode 1))
 
-;; padding around windows
-(use-package spacious-padding
-  :hook (elpaca-after-init . spacious-padding-mode))
-
 ;; distraction-free mode
 (use-package olivetti
   :init
-  (setq olivetti-body-width 90)  ;; makes the writing area 90 columns wide
+  (setq olivetti-body-width 0.55
+        olivetti-style 'fancy)  ;; use fringes as side margins
 
   :config
   ;; optionally enable olivetti-mode automatically in text and org modes
   ;;(add-hook 'text-mode-hook #'olivetti-mode)
-  (add-hook 'org-mode-hook #'olivetti-mode)
-
-  ;; You may want to enable visual-line-mode for soft line wrapping with Olivetti
-  (add-hook 'olivetti-mode-hook #'visual-line-mode))
+  (add-hook 'org-mode-hook #'olivetti-mode))
 
 ;; toggle line number, text scale automatically
+(require 'color)
 (defun my/olivetti-setup ()
-  "Disable line numbers and increase font size in Olivetti mode."
+  "Disable line numbers and set darker fringes in Olivetti mode."
   (if olivetti-mode
-      (progn
-        (display-line-numbers-mode -1)  ;; disable line numbers
-        ;;(text-scale-set 2) ;; doube text ssize
-		)
-    ;; Restore defaults when disabling
-    (display-line-numbers-mode 1)
-    ;;(text-scale-set 0)
-	))
+      (let ((dark-bg (color-darken-name 
+                      (face-attribute 'default :background) 8)))
+        (set-face-attribute 'fringe nil :background dark-bg)
+        (set-face-attribute 'olivetti-fringe nil :background dark-bg)
+        (display-line-numbers-mode -1))
+    ;; Restore theme defaults when leaving
+    (set-face-attribute 'fringe nil :background 
+                        (face-attribute 'default :background))
+    (set-face-attribute 'olivetti-fringe nil :background 
+                        (face-attribute 'default :background))
+    (display-line-numbers-mode 1)))
 
 (add-hook 'olivetti-mode-hook #'my/olivetti-setup)
 
-;;(use-package focus)
+(use-package focus)
 
 ;; -----------------
 ;; Evil setup
@@ -452,6 +418,20 @@ when called, prompt for dir or default to current directory"
 (setq project-vc-extra-root-markers '(".project.el" ".projectile" ".dumbjump"))
 (setq xref-search-program 'ripgrep) ;; use ripgrep over grep
 
+;; alternatively jump around with zoxide + dired
+(defun emacs-zoxide (q)
+  "Query zoxide  and launch dired."
+  (interactive "sZoxide: ")
+  (if-let
+      ((zoxide (executable-find "zoxide")) ;; if zoxide installed
+       (target                             ;; if target is found
+        (with-temp-buffer
+          (if (= 0 (call-process zoxide nil t nil "query" q))
+              (string-trim (buffer-string))))))
+      (funcall-interactively #'dired  target) ;; open dired at target
+    (unless zoxide (error "Install zoxide"))
+    (unless target (error "No Match"))))
+
 ;; Harpoon, quick-switch between most common files
 (use-package harpoon)
 
@@ -469,7 +449,6 @@ when called, prompt for dir or default to current directory"
   (activities-tabs-mode)
   ;; Prevent `edebug' default bindings from interfering.
   (setq edebug-inhibit-emacs-lisp-mode-bindings t)
-
   :bind
   (("C-x C-a C-n" . activities-new)
    ("C-x C-a C-d" . activities-define)
@@ -480,6 +459,7 @@ when called, prompt for dir or default to current directory"
    ("C-x C-a b" . activities-switch-buffer)
    ("C-x C-a g" . activities-revert)
    ("C-x C-a l" . activities-list)))
+(setq tab-bar-show nil) ;; use tab-bar but don't show
 
 
 ;; -------------------------
@@ -591,8 +571,12 @@ when called, prompt for dir or default to current directory"
 
 ;; context indicator in code
 (use-package breadcrumb
-  :config (breadcrumb-mode))
+  :hook ((prog-mode . breadcrumb-mode)
+         (breadcrumb-mode . (lambda () (when (> (buffer-size) 500000) (breadcrumb-mode -1)))))
+  :custom ((breadcrumb-symbol-minimum-length 0)))
 
+;; pulls from any icon provider
+;; in this case nerd-icons
 (use-package all-the-icons-completion
   :after (marginalia all-the-icons)
   :hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
@@ -639,10 +623,57 @@ when called, prompt for dir or default to current directory"
   (org-remark-create "dark-pastel-brown" '(:background "#7b6046"))
   )
 
+;; -----------------------------
+;; Project & file-specific notes
+;; similar to quicknote.nvim which
+;; dynamically maps each file or
+;; project to a 1:1 org file
+;; -----------------------------
+;; Project Org-Mode
+;; -----------------------------
+(defvar my-notes-dir "~/org/project-notes/"
+  "directory for project notes, outside any repo.")
+
+;; org notes for project
+(defun my-project-notes-file ()
+  "path to notes file for current project."
+  (when-let ((root (project-root (project-current))))
+    (expand-file-name (concat (file-name-nondirectory (directory-file-name root)) ".org")
+                      my-notes-dir)))
+
+(defun my-open-project-notes ()
+  "toggle between project notes and previous buffer."
+  (interactive)
+  (if (and (eq major-mode 'org-mode)
+           (string-prefix-p (expand-file-name my-notes-dir) (or buffer-file-name "")))
+      (switch-to-prev-buffer)
+    (let ((notes-file (my-project-notes-file)))
+      (unless (file-exists-p notes-file)
+        (make-directory (file-name-directory notes-file) t))
+      (find-file notes-file))))
+
+;; org notes for file
+(defun my-file-notes-file ()
+  "path to notes file for current file."
+  (when-let* ((root (project-root (project-current)))
+              (relpath (file-relative-name buffer-file-name root)))
+    (expand-file-name (concat relpath ".notes.org") my-notes-dir)))
+
+(defun my-open-file-notes ()
+  "toggle between file notes and previous buffer."
+  (interactive)
+  (if (and (eq major-mode 'org-mode)
+           (string-prefix-p (expand-file-name my-notes-dir) (or buffer-file-name "")))
+      (switch-to-prev-buffer)
+    (find-file (my-file-notes-file))))
+
 ;; ------------------
 ;; Terminal and help
 ;; ------------------
-;; will add eat when its on melpa
+;; persists buffer after exit
+;; use spc b d once done
+(use-package eat
+  :ensure (eat :host nongnu))
 
 (use-package helpful
   :bind
@@ -729,19 +760,9 @@ when called, prompt for dir or default to current directory"
         ("\\.zip\\'" "unzip")))
 
 ;; -----------------
-;; Treesitter
-;; -----------------
-;; treesitter grammars don't work on windows
-;;(use-package treesit-auto
-;;  :custom
-;;  (treesit-auto-install 'prompt) ; prompt to install missing grammars
-;;  :config
-;;  (treesit-auto-add-to-auto-mode-alist 'all)  ; map all major modes to their tree-sitter versions
-;;  (global-treesit-auto-mode)) ; enable treesit-auto globally
-
-;; -----------------
 ;; LSP
 ;; -----------------
+
 ;; non-lsp goto def
 ;; if there's no git repo, add a ".dumbjump" root marker
 ;; to allow for local project-wide search
@@ -767,41 +788,6 @@ when called, prompt for dir or default to current directory"
     :global-prefix "M-SPC")
 
   (my/leader-keys
-    ;; files
-    "f"  '(:ignore t :which-key "files")
-    "ff" '(find-file :which-key "find file")                     ;; find file only in CURRENT dir
-    "fd" '(consult-fd :which-key "find file")                    ;; find in ALL dirs from current
-    "fg" '(consult-ripgrep :which-key "ripgrep")                 ;; grep in ALL dirs from current
-    "fl" '(consult-line :which-key "consult line")               ;; see all '/' results
-    "fj" '(breadcrumb-jump :which-key "breadcrumb")              ;; jump to contexts in file
-
-    ;; dired
-    "d"  '(:ignore t :which-key "dired")
-    "dd" '(dired :which-key "open dired")                        ;; specify directory
-    "dc" '(dired-jump :which-key "dired in current buffer")      ;; current buffer directory
-    "dn" '(dired-create-directory :which-key "new directory")    ;; create in current directory or '+'
-    "df" '(find-name-dired :which-key "get files by name")       ;; find file, in specific directory
-    "dg" '(find-grep-dired :which-key "get files by grep")       ;; grep file, in specific directory
-    "do" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
-
-    ;; buffer
-    "b"  '(:ignore t :which-key "buffers")
-    "bb" '(consult-buffer :which-key "switch buffer")            ;; find file in opened buffers
-    "bd" '(kill-this-buffer :which-key "kill buffer")
-    "bi" '(ibuffer :which-key "ibuffer")
-    "bc" '(clean-buffer-list :which-key "clean unused buffers")
-    "bC" '(close-unused-buffers :which-key "clean buffers not visible")
-    "bn" '(next-buffer :which-key "next buffer")
-    "bp" '(previous-buffer :which-key "previous buffer")
-    "bf" '(format-all-region :which-key "format region") ;; format region
-    "bF" '(format-all-buffer :which-key "format file") ;; format entire file
-
-    ;; bookmarks
-    "m"  '(:ignore t :which-key "bookmarks")
-    "mm" '(bookmark-jump :which-key "jump to bookmark")
-    "ms" '(bookmark-set :which-key "set bookmark")
-    "md" '(bookmark-delete :which-key "delete bookmark")
-
     ;; activities
     "a"  '(:ignore t :which-key "activities")
     "aa" '(activities-switch :which-key "switch")
@@ -812,6 +798,49 @@ when called, prompt for dir or default to current directory"
     "ag" '(activities-revert :which-key "revert")               ;; revert to original
     "ar" '(activities-resume :which-key "resume")               ;; resume from suspended
     "as" '(activities-suspend :which-key "suspend")             ;; save and exit activity (close tab)
+
+    ;; buffer
+    "b"  '(:ignore t :which-key "buffers")
+    "bb" '(consult-buffer :which-key "switch buffer")            ;; find file in opened buffers
+    "bd" '(kill-current-buffer :which-key "kill buffer")
+    "bi" '(ibuffer :which-key "ibuffer")
+    "bc" '(clean-buffer-list :which-key "clean unused buffers")
+    "bC" '(close-unused-buffers :which-key "clean buffers not visible")
+    "bn" '(next-buffer :which-key "next buffer")
+    "bp" '(previous-buffer :which-key "previous buffer")
+    "bf" '(format-all-region :which-key "format region") ;; format region
+    "bF" '(format-all-buffer :which-key "format file") ;; format entire file
+
+    ;; compile
+    "c"  '(:ignore t :which-key "custom")
+    "cc" '(compile :which-key "compile")
+    "cr" '(compile-reset :which-key "reset")
+
+    ;; dired
+    "d"  '(:ignore t :which-key "dired")
+    "dd" '(dired :which-key "open dired")                        ;; specify directory
+    "dc" '(dired-jump :which-key "dired in current buffer")      ;; current buffer directory
+    "dn" '(dired-create-directory :which-key "new directory")    ;; create in current directory or '+'
+    "df" '(find-name-dired :which-key "get files by name")       ;; find file, in specific directory
+    "dg" '(find-grep-dired :which-key "get files by grep")       ;; grep file, in specific directory
+    "do" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
+
+    ;; eat terminal
+    "e"  '(:ignore t :which-key "terminal")
+    "ee" '(eat :which-key "open eat at file")
+    "ep" '(eat-project :which-key "open eat at project")
+
+    ;; files
+    "f"  '(:ignore t :which-key "files")
+    "ff" '(find-file :which-key "find file")                     ;; find file only in CURRENT dir
+    "fd" '(consult-fd :which-key "find file")                    ;; find in ALL dirs from current
+    "fg" '(consult-ripgrep :which-key "ripgrep")                 ;; grep in ALL dirs from current
+    "fl" '(consult-line :which-key "consult line")               ;; see all '/' results
+    "fj" '(breadcrumb-jump :which-key "breadcrumb")              ;; jump to contexts in file
+
+    ;; magit
+    "g"  '(:ignore t :which-key "git")
+    "gs" '(magit-status :which-key "status")
 
     ;; harpoon
     "h"  '(:ignore t :which-key "harpoon")
@@ -825,6 +854,31 @@ when called, prompt for dir or default to current directory"
     "h3" '(harpoon-go-to-3 :which-key "file 3")
     "h4" '(harpoon-go-to-4 :which-key "file 4")
 
+    ;; lsp
+    "l"  '(:ignore t :which-key "LSP")
+    "ll" '(eglot :which-key "eglot")              ;; jump to contexts in file
+
+    ;; bookmarks
+    "m"  '(:ignore t :which-key "bookmarks")
+    "mm" '(bookmark-jump :which-key "jump to bookmark")
+    "ms" '(bookmark-set :which-key "set bookmark")
+    "md" '(bookmark-delete :which-key "delete bookmark")
+    "mz" '(emacs-zoxide :which-key "zoxide")
+
+    ;; org
+    "o"  '(:ignore t :which-key "org")
+    "oa" '(org-agenda :which-key "agenda")
+    "oc" '(org-capture :which-key "capture")
+    "ol" '(org-store-link :which-key "current file link")
+    "op" '(my-open-project-notes :which-key "org for this project")
+    "of" '(my-open-file-notes :which-key "org for this file")
+    "or" '(:ignore t :which-key "remark")
+    "orr" '(org-remark-mode :which-key "enable highlights")
+    "orh" '(org-remark-mark :which-key "highlight")
+    "ord" '(org-remark-delete :which-key "delete highlight")
+    "orl" '(org-remark-mark-line :which-key "mark line")
+    "orc" '(org-remark-change :which-key "change highlight")
+
     ;; project
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
@@ -834,34 +888,21 @@ when called, prompt for dir or default to current directory"
     "pk" '(project-kill-buffers :which-key "kill project buffers") ;; open dired at project root
     "pe" '(project-eshell :which-key "project eshell")
 
-    ;; magit
-    "g"  '(:ignore t :which-key "git")
-    "gs" '(magit-status :which-key "status")
+    ;; registers
+    "r"  '(:ignore t :which-key "registers")
+    "rs" '(copy-to-register :which-key "save region to register")
+    "rp" '(point-to-register :which-key "save point position")
+    "rn" '(number-to-register :which-key "save number")
+    "r+" '(increment-register :which-key "increment register")
+    "ri" '(insert-register :which-key "insert register")
+    "rj" '(jump-to-register :which-key "jump to register")
+    "rl" '(list-registers :which-key "list registers")
+    "rr" '(view-register :which-key "view register")
 
     ;; tree
     "t"  '(:ignore t :which-key "tree")
     "tt" '(treemacs :which-key "toggle")
     "tp" '(my/treemacs-project-toggle :which-key "toggle project")
-
-    ;; org
-    "o"  '(:ignore t :which-key "org")
-    "oa" '(org-agenda :which-key "agenda")
-    "oc" '(org-capture :which-key "capture")
-    "ol" '(org-store-link :which-key "current file link")
-
-    ;; remark
-    "r"  '(:ignore t :which-key "remark")
-    "rr" '(org-remark-mode :which-key "enable highlights")
-    "rh" '(org-remark-mark :which-key "highlight")
-    "ry" '(org-remark-mark-yellow :which-key "highlight yellow")
-    "rl" '(org-remark-mark-line :which-key "mark line")
-    "rd" '(org-remark-delete :which-key "delete highlight")
-    "rc" '(org-remark-change :which-key "change highlight")
-
-    ;; compile
-    "c"  '(:ignore t :which-key "custom")
-    "cc" '(compile :which-key "compile")
-    "cr" '(compile-reset :which-key "reset")
 
     ;;window navigation (with resizing)
     "w"  '(:ignore t :which-key "windows")

@@ -1,23 +1,23 @@
 # A Bird's-eye view
 
-My modular NixOS, Flakes & Home Manager config with multiple hosts. This setup is uses Niri & Noctalia-shell as well as other opinionated choices that I personally use. It is also [Expandable](#expanding) without adding complexity.
+My modular NixOS, Flakes & Home Manager config with multiple hosts. This setup uses Niri, Sway, Waybar, Fuzzel as well as other opinionated choices that I personally use. It is easily [Expandable](#expanding).
 
 ```
 nix-config/
 ├─ flake.nix                      ← Root entry
 ├─ common/
 │  ├─ system/
-│  │  └─ base.nix                 ← rulebook for every host
+│  │  └─ base.nix                 ← config for every host
 │  └─ home/
 │     ├─ default.nix
 │     ├─ editors.nix              ← Emacs w/ evil > Neovim
 │     ├─ foot.nix                 ← To balance out the Emacs bloat
 │     ├─ shells.nix
-│     ├─ niri.nix                 ← PaperWM but better
+│     ├─ niri.nix
 │     ├─ waybar.nix
-│     ├─ rofi.nix                 ← Telescope.nvim but for your apps
+│     ├─ fuzzel.nix
 │     ├─ mako.nix
-│     ├─ greetd.nix               ← A no-nonsense TUI greeter
+│     ├─ greetd.nix
 │     └─ dev/                     ← Web-dev, Android & all your esoteric langs
 ├─ dotfiles/                      ← (symlinked by dotfiles.nix)
 │  ├─ emacs/
@@ -71,5 +71,5 @@ You'll notice that some dotfiles are configured with Nix in `common/home/`,
 while others live in `dotfiles/`
 
 These are intentionally split apart:
-- **Nix:** Modules that have simple configs(like toml) or require runtime changes (Stylix theming)
+- **Nix:** Modules that have simple configs(like toml) or require runtime changes (like stylix)
 - **Native:** Modules that are tweaked regularly or have more complex configuration

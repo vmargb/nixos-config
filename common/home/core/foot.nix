@@ -3,21 +3,10 @@
 {
   programs.foot = {
     enable = true;
-
-    settings = {
-      main = {
-        font = "${config.stylix.fonts.monospace.name}:size=12";
-      };
-
-      scrollback = {
-        lines = 10000;
-      };
-
-      colors = {
-        foreground = config.stylix.baseColors.foreground;
-        background = config.stylix.baseColors.background;
-      };
-    };
+    settings.scrollback.lines = 10000;
   };
+  
+  stylix.targets.foot.enable = true;
+  # stylix.targets.foot.colors.override = { alpha = "0.9"; };
+  # stylix.targets.foot.fonts.override = { size = 11; };
 }
-

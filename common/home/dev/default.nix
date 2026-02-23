@@ -8,7 +8,6 @@ in
 
   config = lib.mkIf cfg.enable {
     home.packages = with pkgs; [
-      # Add general dev tools here if needed
     ];
 
     imports = [

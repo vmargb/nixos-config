@@ -6,8 +6,5 @@
   ];
 
   home.packages = with pkgs; [
-    syncthing
   ];
-
-  myDefaults.enableImports = false;
 }

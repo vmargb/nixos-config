@@ -36,7 +36,6 @@
   };
 
   # default overrides
-  myDefaults.enableImports = true;
   myShell.default = "fish";
 
   # wm overrides
