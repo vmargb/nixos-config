@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 (setq package-enable-at-startup nil) ;; disable built-in package.el
+(setq eshell-modules-list nil) ;; disable eshell (use eat instead)
 
 ;; =========================================================
 ;; Performance tweaks to run early in init
@@ -32,4 +33,6 @@
 (setq scroll-margin 5)
 (setq make-backup-files nil)
 (setq auto-save-default nil)
+(add-to-list 'default-frame-alist '(undecorated . t))
+
 ;;(add-to-list 'initial-frame-alist '(fullscreen . maximized)) ;; make fullscreen

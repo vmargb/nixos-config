@@ -5,11 +5,14 @@
 ;;  install with package-manager
 ;; ============================
 ;; - Emacs 29 minimum (treesitter, LSP)
-;; - rg (ripgrep)
-;; - fd (faster find)
-;; - fzf (fuzzy finder)
-;; - zoxide (optional)
+;; - rg     (ripgrep:     SPC f g)
+;; - fd     (faster find: SPC f d)
+;; - zoxide (better cd:   SPC m z)
+;; - fzf    (optional)
 ;; - coreutils ('gls' mac-only)
+;;
+;; - Iosevka Nerd font (or change)
+;; - M-x nerd-icons-install-fonts (symbols nerd font)
 ;; ============================
 
 ;;=====================================
@@ -31,8 +34,8 @@
 ;; goto match in file:      spc f l
 ;;
 ;;        ** Motions **
-;; goto anything:           S (search)
-;; goto char(current line): s
+;; goto anything:           s (search)
+;; goto char(current line): S
 ;; goto char(anywhere):     K
 ;; goto line number:        gl (goto line)
 ;; ====================================
@@ -130,9 +133,15 @@
   (split-window-right)
   (other-window 1))
 
-;; or whatever nerd font you want
-;;(set-face-attribute 'default nil :font "Iosevka NF Medium-16")
-(set-frame-font "Iosevka Nerd Font 16" nil t)
+;; FONT
+;; windows handles font config through face-attributes (like :font)
+;; while mac/linux uses set-frame-font
+(cond
+ ((eq system-type 'windows-nt)
+  (set-face-attribute 'default nil :font "Iosevka NF Medium-16"))
+ (t
+  (set-frame-font "Iosevka Nerd Font 16" nil t)))
+
 (setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
 
 ;; fixes "ls" problem in dired for macos
@@ -215,12 +224,14 @@
 (use-package doom-themes
   :config
   (doom-themes-org-config)
-  (load-theme 'doom-lantern t))
+  ;;(load-theme 'doom-plain-dark t)
+  ;;(load-theme 'doom-lantern t)
+  (load-theme 'doom-rouge t)
+)
 
 ;; need to run M-x nerd-icons-install-fonts
 (use-package nerd-icons
   ;; :custom
-  ;; The Nerd Font you want to use in GUI
   ;; "Symbols Nerd Font Mono" is the default and is recommended
   ;; but you can use any other Nerd Font if you want
   ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
@@ -298,32 +309,37 @@
   :config
   (vertico-posframe-mode 1))
 
+;; padding around windows
+(use-package spacious-padding
+  :hook (after-init . spacious-padding-mode))
+
 ;; distraction-free mode
 (use-package olivetti
   :init
   (setq olivetti-body-width 0.55
-        olivetti-style 'fancy)  ;; use fringes as side margins
-
+        olivetti-style 'fancy)
   :config
-  ;; optionally enable olivetti-mode automatically in text and org modes
-  ;;(add-hook 'text-mode-hook #'olivetti-mode)
-  (add-hook 'org-mode-hook #'olivetti-mode))
+  (add-hook 'org-mode-hook #'olivetti-mode)
+  (add-hook 'dired-mode-hook #'olivetti-mode))
 
-;; toggle line number, text scale automatically
-(require 'color)
 (defun my/olivetti-setup ()
-  "Disable line numbers and set darker fringes in Olivetti mode."
+  "UI tweaks for olivetti; skip fringe tweaks in dired."
   (if olivetti-mode
-      (let ((dark-bg (color-darken-name 
-                      (face-attribute 'default :background) 8)))
-        (set-face-attribute 'fringe nil :background dark-bg)
-        (set-face-attribute 'olivetti-fringe nil :background dark-bg)
-        (display-line-numbers-mode -1))
-    ;; Restore theme defaults when leaving
-    (set-face-attribute 'fringe nil :background 
-                        (face-attribute 'default :background))
-    (set-face-attribute 'olivetti-fringe nil :background 
-                        (face-attribute 'default :background))
+      (progn
+        (display-line-numbers-mode -1)
+        (unless (eq major-mode 'dired-mode)
+          (let* ((frame (selected-frame))
+                 (orig-bg (face-attribute 'fringe :background nil 'default))
+                 (dark-bg (color-darken-name
+                           (face-attribute 'default :background nil 'default)
+                           8)))
+            (set-frame-parameter frame 'orig-fringe-bg orig-bg)
+            (set-face-attribute 'fringe nil :background dark-bg)
+            (set-face-attribute 'olivetti-fringe nil :background dark-bg))))
+    (when-let ((bg (frame-parameter nil 'orig-fringe-bg)))
+      (set-face-attribute 'fringe nil :background bg)
+      (set-face-attribute 'olivetti-fringe nil :background bg)
+      (set-frame-parameter nil 'orig-fringe-bg nil))
     (display-line-numbers-mode 1)))
 
 (add-hook 'olivetti-mode-hook #'my/olivetti-setup)
@@ -357,6 +373,9 @@
 
 ;; leap/flash.nvim functionality
 (use-package avy)
+
+(use-package expand-region
+  :bind ("C-=" . er/expand-region))
 
 ;; mode colors
 (setq evil-emacs-state-cursor    '("#649bce" box))
@@ -431,6 +450,7 @@ when called, prompt for dir or default to current directory"
       (funcall-interactively #'dired  target) ;; open dired at target
     (unless zoxide (error "Install zoxide"))
     (unless target (error "No Match"))))
+
 
 ;; Harpoon, quick-switch between most common files
 (use-package harpoon)
@@ -803,7 +823,6 @@ when called, prompt for dir or default to current directory"
     "b"  '(:ignore t :which-key "buffers")
     "bb" '(consult-buffer :which-key "switch buffer")            ;; find file in opened buffers
     "bd" '(kill-current-buffer :which-key "kill buffer")
-    "bi" '(ibuffer :which-key "ibuffer")
     "bc" '(clean-buffer-list :which-key "clean unused buffers")
     "bC" '(close-unused-buffers :which-key "clean buffers not visible")
     "bn" '(next-buffer :which-key "next buffer")
@@ -836,7 +855,7 @@ when called, prompt for dir or default to current directory"
     "fd" '(consult-fd :which-key "find file")                    ;; find in ALL dirs from current
     "fg" '(consult-ripgrep :which-key "ripgrep")                 ;; grep in ALL dirs from current
     "fl" '(consult-line :which-key "consult line")               ;; see all '/' results
-    "fj" '(breadcrumb-jump :which-key "breadcrumb")              ;; jump to contexts in file
+    "fi" '(consult-imenu :which-key "breadcrumb")              ;; jump to contexts in file
 
     ;; magit
     "g"  '(:ignore t :which-key "git")
@@ -846,13 +865,14 @@ when called, prompt for dir or default to current directory"
     "h"  '(:ignore t :which-key "harpoon")
     "ha" '(harpoon-add-file :which-key "add file")
     "hh" '(harpoon-toggle-quick-menu :which-key "menu")
-    "hH" '(harpoon-quick-menu-hydra :which-key "menu")
+    "hm" '(harpoon-quick-menu-hydra :which-key "menu")
     "hn" '(harpoon-go-to-next :which-key "next")
     "hp" '(harpoon-go-to-prev :which-key "previous")
     "h1" '(harpoon-go-to-1 :which-key "file 1")
     "h2" '(harpoon-go-to-2 :which-key "file 2")
     "h3" '(harpoon-go-to-3 :which-key "file 3")
     "h4" '(harpoon-go-to-4 :which-key "file 4")
+    "h5" '(harpoon-go-to-5 :which-key "file 5")
 
     ;; lsp
     "l"  '(:ignore t :which-key "LSP")
@@ -860,7 +880,7 @@ when called, prompt for dir or default to current directory"
 
     ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
-    "mm" '(bookmark-jump :which-key "jump to bookmark")
+    "mm" '(consult-bookmark :which-key "jump to bookmark")
     "ms" '(bookmark-set :which-key "set bookmark")
     "md" '(bookmark-delete :which-key "delete bookmark")
     "mz" '(emacs-zoxide :which-key "zoxide")
@@ -883,6 +903,8 @@ when called, prompt for dir or default to current directory"
     "p"  '(:ignore t :which-key "projects")
     "pp" '(project-switch-project :which-key "switch project")
     "pa" '(my/add-project-root-marker :which-key "add project")
+    "pb" '(consult-project-buffer :which-key "find buffer in project")  ;; find buffer in project
+    "pi" '(consult-imenu-multi :which-key "find buffer in project")  ;; find buffer in project
     "pf" '(project-find-file :which-key "find file in project")  ;; find file in project
     "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
     "pk" '(project-kill-buffers :which-key "kill project buffers") ;; open dired at project root
@@ -933,8 +955,8 @@ when called, prompt for dir or default to current directory"
    :states '(normal visual)
    :keymaps 'override
    ;; avy bindings
-   "S" 'avy-goto-char-timer ;; flash.nvim style
-   "s" 'evil-avy-goto-char-in-line ;; goto char in line
+   "s" 'avy-goto-char-timer ;; flash.nvim style
+   "S" 'evil-avy-goto-char-in-line ;; goto char in line
    "K" 'avy-goto-word-1     ;; goto single char
    "gl" 'avy-goto-line      ;; no more numbers
    "gc" 'evil-commentary ;; comment region
