@@ -138,9 +138,9 @@
 ;; while mac/linux uses set-frame-font
 (cond
  ((eq system-type 'windows-nt)
-  (set-face-attribute 'default nil :font "Iosevka NF Medium-16"))
+  (set-face-attribute 'default nil :font "Iosevka NF Medium-17"))
  (t
-  (set-frame-font "Iosevka Nerd Font 16" nil t)))
+  (set-frame-font "Iosevka Nerd Font 17" nil t)))
 
 (setq imenu-auto-rescan t) ;; automatically rescan imenu for updates
 
@@ -180,10 +180,12 @@
 (use-package quickrun
   :bind (("<f5>" . quickrun)))
 
+(use-package flycheck
+  :init (global-flycheck-mode))
 
 ;; function to reset M-x compile
 (defun compile-reset ()
-  "prompt for new compile command every time"
+  "Prompt for new compile command every time."
   (interactive)
   (setq compile-command nil) ;; set compile-command to nil to force prompt
   (call-interactively 'compile))
@@ -224,10 +226,13 @@
 (use-package doom-themes
   :config
   (doom-themes-org-config)
-  ;;(load-theme 'doom-plain-dark t)
-  ;;(load-theme 'doom-lantern t)
-  (load-theme 'doom-rouge t)
-)
+  (defvar my-random-themes
+    '(doom-plain-dark doom-gruvbox doom-lantern doom-miramare))
+  ;; randomly pick and load one
+  (let* ((selected-theme (nth (random (length my-random-themes)) my-random-themes))
+         (doom-theme selected-theme))
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme selected-theme t)))
 
 ;; need to run M-x nerd-icons-install-fonts
 (use-package nerd-icons
@@ -316,30 +321,23 @@
 ;; distraction-free mode
 (use-package olivetti
   :init
-  (setq olivetti-body-width 0.55
-        olivetti-style 'fancy)
-  :config
-  (add-hook 'org-mode-hook #'olivetti-mode)
-  (add-hook 'dired-mode-hook #'olivetti-mode))
+  (setq olivetti-body-width 0.6
+        olivetti-style 'fancy)  ;; use fringes as side margins
 
+  :config
+  ;; optionally enable olivetti-mode automatically in text and org modes
+  ;;(add-hook 'text-mode-hook #'olivetti-mode)
+  (add-hook 'org-mode-hook #'olivetti-mode))
+
+;; toggle line number, text scale automatically
+(require 'color)
 (defun my/olivetti-setup ()
-  "UI tweaks for olivetti; skip fringe tweaks in dired."
   (if olivetti-mode
-      (progn
-        (display-line-numbers-mode -1)
-        (unless (eq major-mode 'dired-mode)
-          (let* ((frame (selected-frame))
-                 (orig-bg (face-attribute 'fringe :background nil 'default))
-                 (dark-bg (color-darken-name
-                           (face-attribute 'default :background nil 'default)
-                           8)))
-            (set-frame-parameter frame 'orig-fringe-bg orig-bg)
-            (set-face-attribute 'fringe nil :background dark-bg)
-            (set-face-attribute 'olivetti-fringe nil :background dark-bg))))
-    (when-let ((bg (frame-parameter nil 'orig-fringe-bg)))
-      (set-face-attribute 'fringe nil :background bg)
-      (set-face-attribute 'olivetti-fringe nil :background bg)
-      (set-frame-parameter nil 'orig-fringe-bg nil))
+      (let ((dark-bg (color-darken-name 
+                      (face-attribute 'default :background) 8)))
+        (set-face-attribute 'olivetti-fringe nil :background dark-bg)
+        (display-line-numbers-mode -1))
+    (set-face-attribute 'olivetti-fringe nil :background 'unspecified)
     (display-line-numbers-mode 1)))
 
 (add-hook 'olivetti-mode-hook #'my/olivetti-setup)
@@ -372,7 +370,21 @@
   (evil-commentary-mode))
 
 ;; leap/flash.nvim functionality
-(use-package avy)
+(use-package flash
+  :commands (flash-jump flash-jump-continue
+             flash-treesitter)
+  :bind ("s-j" . flash-jump) ;; cmd-j, ctrl-j
+  :custom
+  (flash-multi-window t)
+  :init
+  ;; Evil integration (simple setup)
+  (with-eval-after-load 'evil
+    (require 'flash-evil)
+    (flash-evil-setup t))  ; t = also set up f/t/F/T char motions
+  :config
+  ;; Search integration (labels during C-s, /, ?)
+  (require 'flash-isearch)
+  (flash-isearch-mode 1))
 
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
@@ -672,12 +684,19 @@ when called, prompt for dir or default to current directory"
         (make-directory (file-name-directory notes-file) t))
       (find-file notes-file))))
 
-;; org notes for file
 (defun my-file-notes-file ()
-  "path to notes file for current file."
-  (when-let* ((root (project-root (project-current)))
+  "Path to notes file for current file, namespaced by project."
+  (when-let* ((project (project-current))
+              (root    (project-root project))
               (relpath (file-relative-name buffer-file-name root)))
-    (expand-file-name (concat relpath ".notes.org") my-notes-dir)))
+    ;; e.g. ~/org/project-notes/my-rust-project/src/main.rs.notes.org
+    (expand-file-name
+     (concat
+      (file-name-nondirectory (directory-file-name root)) ; project name
+      "/"
+      relpath
+      ".notes.org")
+     my-notes-dir)))
 
 (defun my-open-file-notes ()
   "toggle between file notes and previous buffer."
@@ -696,6 +715,7 @@ when called, prompt for dir or default to current directory"
   :ensure (eat :host nongnu))
 
 (use-package helpful
+  :defer t
   :bind
   ([remap describe-function] . helpful-callable)
   ([remap describe-variable] . helpful-variable)
@@ -743,11 +763,11 @@ when called, prompt for dir or default to current directory"
 ;; dired-do-rename: R, dired-create-directory: +
 ;; dired-do-copy: C(specify copy dir), dired-do-delete: D
 ;; move: R (specify new dir with file name)
-
+(setq dired-kill-when-opening-new-dired-buffer t) ;; auto-close old dired buffers
 (setq dired-create-destination-dirs t) ;; create new directories during move/copy
 ;;(setq dired-create-destination-dirs-on-trailing-dirsep t) ;; trailling slash = directory (optional)
 ;; sort by folders first, also sort by filetype "-X"
-(setq dired-listing-switches "-alh --group-directories-first")
+(setq dired-listing-switches "-alh --group-directories-first") ;; need gls on macos
 
 ;; treemacs icons > all-the-icons
 (use-package treemacs-icons-dired
@@ -854,8 +874,15 @@ when called, prompt for dir or default to current directory"
     "ff" '(find-file :which-key "find file")                     ;; find file only in CURRENT dir
     "fd" '(consult-fd :which-key "find file")                    ;; find in ALL dirs from current
     "fg" '(consult-ripgrep :which-key "ripgrep")                 ;; grep in ALL dirs from current
-    "fl" '(consult-line :which-key "consult line")               ;; see all '/' results
-    "fi" '(consult-imenu :which-key "breadcrumb")              ;; jump to contexts in file
+    "fi" '(consult-imenu :which-key "breadcrumb")                ;; jump to contexts in file
+
+    ;; linting
+    "l"  '(:ignore t :which-key "lint")
+    "ll" '(flycheck-list-errors :which-key "enable flymake")
+    "ln" '(flycheck-next-error :which-key "next error")
+    "lp" '(flycheck-previous-error :which-key "prev error")
+    "ld" '(flycheck-display-error-at-point :which-key "display current error")
+    "le" '(flycheck-explain-error-at-point :which-key "display current error")
 
     ;; magit
     "g"  '(:ignore t :which-key "git")
@@ -865,7 +892,7 @@ when called, prompt for dir or default to current directory"
     "h"  '(:ignore t :which-key "harpoon")
     "ha" '(harpoon-add-file :which-key "add file")
     "hh" '(harpoon-toggle-quick-menu :which-key "menu")
-    "hm" '(harpoon-quick-menu-hydra :which-key "menu")
+    "hH" '(harpoon-quick-menu-hydra :which-key "menu")
     "hn" '(harpoon-go-to-next :which-key "next")
     "hp" '(harpoon-go-to-prev :which-key "previous")
     "h1" '(harpoon-go-to-1 :which-key "file 1")
@@ -873,10 +900,6 @@ when called, prompt for dir or default to current directory"
     "h3" '(harpoon-go-to-3 :which-key "file 3")
     "h4" '(harpoon-go-to-4 :which-key "file 4")
     "h5" '(harpoon-go-to-5 :which-key "file 5")
-
-    ;; lsp
-    "l"  '(:ignore t :which-key "LSP")
-    "ll" '(eglot :which-key "eglot")              ;; jump to contexts in file
 
     ;; bookmarks
     "m"  '(:ignore t :which-key "bookmarks")
@@ -954,13 +977,7 @@ when called, prompt for dir or default to current directory"
   (general-define-key
    :states '(normal visual)
    :keymaps 'override
-   ;; avy bindings
-   "s" 'avy-goto-char-timer ;; flash.nvim style
-   "S" 'evil-avy-goto-char-in-line ;; goto char in line
-   "K" 'avy-goto-word-1     ;; goto single char
-   "gl" 'avy-goto-line      ;; no more numbers
    "gc" 'evil-commentary ;; comment region
-
    ;; window navigation (without resizing)
    "C-h" 'evil-window-left
    "C-j" 'evil-window-down

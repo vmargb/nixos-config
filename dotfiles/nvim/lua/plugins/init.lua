@@ -21,8 +21,26 @@ vim.g.maplocalleader = "\\"
 local plugins = {
     --> General
     'windwp/nvim-autopairs',
-    { 'nvim-treesitter/nvim-treesitter', run = ':TSUpdate' },
-    'nvim-treesitter/nvim-treesitter-refactor',
+    { 
+      'nvim-treesitter/nvim-treesitter', 
+      build = ':TSUpdate',
+      config = function()
+        require('nvim-treesitter.configs').setup {
+          ensure_installed = { "c", "cpp", "lua", "python", "vim", "rust" },
+          sync_install = false,
+          auto_install = true,
+          highlight = {
+            enable = true,
+            disable = function(lang, buf)
+              local max_filesize = 100 * 1024
+              local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
+              return ok and stats and stats.size > max_filesize
+            end,
+            additional_vim_regex_highlighting = false,
+          },
+        }
+      end
+    },
     {
       "folke/flash.nvim",
       event = "VeryLazy",
@@ -30,7 +48,7 @@ local plugins = {
       opts = {},
       -- stylua: ignore
       keys = {
-        { "z", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash" },
+        { "s", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash" },
         { "Z", mode = { "n", "x", "o" }, function() require("flash").treesitter() end, desc = "Flash Treesitter" },
         { "r", mode = "o", function() require("flash").remote() end, desc = "Remote Flash" },
         { "R", mode = { "o", "x" }, function() require("flash").treesitter_search() end, desc = "Treesitter Search" },
@@ -42,10 +60,10 @@ local plugins = {
         'echasnovski/mini.surround', version = '*',
         config = function() require('mini.surround').setup() end
     },
-    {
-      'Exafunction/codeium.vim',
-      event = 'BufEnter'
-    },
+    -- {
+    --   'Exafunction/codeium.vim',
+    --   event = 'BufEnter'
+    -- },
     { 'lewis6991/gitsigns.nvim',
       config = function() require('gitsigns').setup() end
     },
@@ -157,23 +175,40 @@ local plugins = {
 
     --> Mason + lsp stuff
     {
-        "neovim/nvim-lspconfig",
-        dependencies = {
-            {
-                "SmiteshP/nvim-navbuddy",
-                dependencies = {
-                    "SmiteshP/nvim-navic",
-                    "MunifTanjim/nui.nvim"
-                },
-                opts = { lsp = { auto_attach = true } }
-            }
-        },
+      "williamboman/mason.nvim",
+      config = function()
+        require("mason").setup()
+      end
     },
-    { 'williamboman/mason.nvim' },
     {
-        'williamboman/mason-lspconfig.nvim',
-        -- ensures that mason is loaded first
-        dependencies = { "mason.nvim" },
+      "mason-org/mason-lspconfig.nvim",
+      dependencies = {
+        "mason.nvim",
+        "neovim/nvim-lspconfig",
+      },
+      opts = {
+        ensure_installed = { "lua_ls", "rust_analyzer", "clangd" },
+      },
+      config = function()
+        require("mason-lspconfig").setup_handlers {
+          function(server_name)
+            require("lspconfig")[server_name].setup {}
+          end,
+        }
+      end,
+    },
+    {
+      "neovim/nvim-lspconfig",
+      dependencies = {
+        {
+          "SmiteshP/nvim-navbuddy",
+          dependencies = {
+            "SmiteshP/nvim-navic",
+            "MunifTanjim/nui.nvim"
+          },
+          opts = { lsp = { auto_attach = true } }
+        }
+      },
     },
     {
         "rachartier/tiny-inline-diagnostic.nvim",
