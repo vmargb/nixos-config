@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
-(setq package-enable-at-startup nil) ;; disable built-in package.el
+;;(setq package-enable-at-startup nil) ;; disable built-in package.el
 (setq eshell-modules-list nil) ;; disable eshell (use eat instead)
 
 ;; =========================================================

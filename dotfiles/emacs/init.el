@@ -1,4 +1,4 @@
-;; -*- lexical-binding: t; -*-
+; -*- lexical-binding: t; -*-
 
 ;; ============================
 ;;      ** Dependencies **
@@ -40,54 +40,27 @@
 ;; goto line number:        gl (goto line)
 ;; ====================================
 
-;; -------------------------
-;; Elpaca package manager
-;; -------------------------
-;; Bootstrap Elpaca
-(defvar elpaca-installer-version 0.11)
-(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
-(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                              :ref nil :depth 1 :inherit ignore
-                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                              :build (:not elpaca--activate-package)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
-       (build (expand-file-name "elpaca/" elpaca-builds-directory))
-       (order (cdr elpaca-order))
-       (default-directory repo))
-  (add-to-list 'load-path (if (file-exists-p build) build repo))
-  (unless (file-exists-p repo)
-    (make-directory repo t)
-    (when (<= emacs-major-version 28) (require 'subr-x))
-    (condition-case-unless-debug err
-        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-                  ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
-                                                  ,@(when-let* ((depth (plist-get order :depth)))
-                                                      (list (format "--depth=%d" depth) "--no-single-branch"))
-                                                  ,(plist-get order :repo) ,repo))))
-                  ((zerop (call-process "git" nil buffer t "checkout"
-                                        (or (plist-get order :ref) "--"))))
-                  (emacs (concat invocation-directory invocation-name))
-                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                  ((require 'elpaca))
-                  ((elpaca-generate-autoloads "elpaca" repo)))
-            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
-          (error "%s" (with-current-buffer buffer (buffer-string))))
-      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
-  (unless (require 'elpaca-autoloads nil t)
-    (require 'elpaca)
-    (elpaca-generate-autoloads "elpaca" repo)
-    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
-(add-hook 'after-init-hook #'elpaca-process-queues)
-(elpaca `(,@elpaca-order))
+;; define package archives
+(setq package-archives
+      '(("gnu"   . "https://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+        ("melpa"  . "https://melpa.org/packages/")))
 
-(when (eq system-type 'windows-nt) ;; no symlink mode on windows only
-  (elpaca-no-symlink-mode))
+;; faster archive initialization
+(setq package-archive-priorities
+      '(("gnu" . 90)
+        ("nongnu" . 80)
+        ("melpa" . 10)))
 
-(elpaca elpaca-use-package ;; use-package support
-  (elpaca-use-package-mode))
+;; Initialize package system
+(package-initialize)
+
+;; install use-package if missing (idempotent)
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+;; load use-package
+(require 'use-package)
 
 (setq use-package-always-ensure t) ; always ensure
 (setq package-install-upgrade-built-in t) ; upgrade built-in packages
@@ -166,6 +139,7 @@
 ;; -----------------
 ;; Treesitter
 ;; -----------------
+;; M-x treesit-install-language-grammar (if the below doesnt work)
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
@@ -173,8 +147,10 @@
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
 
-(use-package nix-ts-mode ;; explicit nix mode
+;; explicity modes when above doesnt work
+(use-package nix-ts-mode
  :mode "\\.nix\\'")
+
 
 ;; compile code quickly (quickrun.el)
 (use-package quickrun
@@ -227,7 +203,7 @@
   :config
   (doom-themes-org-config)
   (defvar my-random-themes
-    '(doom-plain-dark doom-gruvbox doom-lantern doom-miramare))
+    '(doom-gruvbox doom-lantern doom-miramare))
   ;; randomly pick and load one
   (let* ((selected-theme (nth (random (length my-random-themes)) my-random-themes))
          (doom-theme selected-theme))
@@ -249,12 +225,13 @@
   :custom
   ;; Core appearance
   (doom-modeline-height 30)
-  (doom-modeline-bar-width 4)
+  (doom-modeline-bar-width 3)
   (doom-modeline-buffer-file-name-style 'relative-from-project)
   (doom-modeline-icon t)
   (doom-modeline-major-mode-icon t)
   (doom-modeline-major-mode-color-icon t)
-
+  (doom-modeline-modal-modern-icon t)
+  (doom-modeline-unicode-fallback t)
   ;; Useful indicators
   (doom-modeline-lsp t)          ; show LSP status
   (doom-modeline-vcs-max-length 20) ; shorter git branch
@@ -269,7 +246,7 @@
 
 ;; colour coded delimiters
 (use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode))
+ :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; intelligent indent-guides
 (use-package highlight-indent-guides
@@ -282,14 +259,12 @@
   (setq highlight-indent-guides-delay 0))
 
 
-;; clear buffer and non buffer highlighting
 (use-package solaire-mode
-  :hook (elpaca-after-init . solaire-global-mode))
-
+  :hook (emacs-startup . solaire-global-mode))
 
 ;; auto resize panes on window switch
 (use-package golden-ratio
-  :hook (elpaca-after-init . golden-ratio-mode)
+  :hook (emacs-startup . golden-ratio-mode)
   :custom
   (golden-ratio-exclude-modes '(occur-mode)))
 
@@ -301,16 +276,12 @@
 (use-package vertico-posframe
   :after vertico
   :custom
+  (vertico-posframe-width 75)
+  (vertico-posframe-min-width 40)
+  (vertico-posframe-max-width 80)
   (vertico-posframe-parameters
-   '((left-fringe . 8)
-     (right-fringe . 8)))
-  (vertico-multiform-commands
-   '((consult-line
-      posframe
-      (vertico-posframe-poshandler . posframe-poshandler-frame-top-center)
-      (vertico-posframe-border-width . 10)
-      (vertico-posframe-fallback-mode . vertico-buffer-mode))
-     (t posframe)))
+   '((left-fringe . 4)
+     (right-fringe . 4)))
   :config
   (vertico-posframe-mode 1))
 
@@ -322,18 +293,17 @@
 (use-package olivetti
   :init
   (setq olivetti-body-width 0.6
-        olivetti-style 'fancy)  ;; use fringes as side margins
+        olivetti-style 'fancy))  ;; use fringes as side margins
 
-  :config
   ;; optionally enable olivetti-mode automatically in text and org modes
   ;;(add-hook 'text-mode-hook #'olivetti-mode)
-  (add-hook 'org-mode-hook #'olivetti-mode))
+  ;;(add-hook 'org-mode-hook #'olivetti-mode))
 
 ;; toggle line number, text scale automatically
 (require 'color)
 (defun my/olivetti-setup ()
   (if olivetti-mode
-      (let ((dark-bg (color-darken-name 
+      (let ((dark-bg (color-darken-name
                       (face-attribute 'default :background) 8)))
         (set-face-attribute 'olivetti-fringe nil :background dark-bg)
         (display-line-numbers-mode -1))
@@ -415,8 +385,9 @@
 ;; 4. enter commit message in commit window
 ;; 5. C-c C-c to commit the message
 ;; 6. P p, P u: push to remote
-(elpaca transient)
-(elpaca (magit :wait t))
+(use-package transient)
+(use-package magit
+  :demand t)  ; ensures immediate loading like :wait t
 
 ;; ---------------------------------------------
 ;; Project management (built-in project.el)
@@ -464,9 +435,6 @@ when called, prompt for dir or default to current directory"
     (unless target (error "No Match"))))
 
 
-;; Harpoon, quick-switch between most common files
-(use-package harpoon)
-
 ;; ---------------------------------------------
 ;; the difference between projects and sessions:
 ;; 'projects' are simply your git repos
@@ -479,19 +447,10 @@ when called, prompt for dir or default to current directory"
   :init
   (activities-mode)
   (activities-tabs-mode)
+  :custom
+  (tab-bar-show . nil) ;; use tab-bar but don't show
   ;; Prevent `edebug' default bindings from interfering.
-  (setq edebug-inhibit-emacs-lisp-mode-bindings t)
-  :bind
-  (("C-x C-a C-n" . activities-new)
-   ("C-x C-a C-d" . activities-define)
-   ("C-x C-a C-a" . activities-resume)
-   ("C-x C-a C-s" . activities-suspend)
-   ("C-x C-a C-k" . activities-kill)
-   ("C-x C-a RET" . activities-switch)
-   ("C-x C-a b" . activities-switch-buffer)
-   ("C-x C-a g" . activities-revert)
-   ("C-x C-a l" . activities-list)))
-(setq tab-bar-show nil) ;; use tab-bar but don't show
+  (setq edebug-inhibit-emacs-lisp-mode-bindings t))
 
 
 ;; -------------------------
@@ -655,64 +614,82 @@ when called, prompt for dir or default to current directory"
   (org-remark-create "dark-pastel-brown" '(:background "#7b6046"))
   )
 
-;; -----------------------------
-;; Project & file-specific notes
-;; similar to quicknote.nvim which
-;; dynamically maps each file or
-;; project to a 1:1 org file
-;; -----------------------------
-;; Project Org-Mode
-;; -----------------------------
-(defvar my-notes-dir "~/org/project-notes/"
-  "directory for project notes, outside any repo.")
+;; === org-journalling =================================
+;; org-agenda: t -> done, C-c C-s: schedule, C-c C-d: deadline
+;; shift-up/down to toggle between active and inactive dates (org agenda)
+;; TODO = do today
+;; SCHEDULED = “do this on this day”
+;; DEADLINE = “this must be done by this day”
 
-;; org notes for project
-(defun my-project-notes-file ()
-  "path to notes file for current project."
-  (when-let ((root (project-root (project-current))))
-    (expand-file-name (concat (file-name-nondirectory (directory-file-name root)) ".org")
-                      my-notes-dir)))
+(setq org-tag-alist
+      '((:startgroup) ("mood") (:endgroup)
+        ("happy" . ?h) ("sad" . ?s) ("productive" . ?p)
+        ("tired" . ?t) ("idea" . ?i) ("code" . ?c) ("rant" . ?r)))
 
-(defun my-open-project-notes ()
-  "toggle between project notes and previous buffer."
+;; org-journalling with yearly files
+(setq org-directory "~/org/")
+(setq journal-dir (expand-file-name "journal/" org-directory))
+(setq notes-dir (expand-file-name "notes/" org-directory))
+(setq org-todo-file (expand-file-name "todo.org" org-directory))
+(make-directory journal-dir t)
+
+(defun get-journal-file-yearly ()
+  "Return path to current year's journal file."
+  (expand-file-name (format-time-string "%Y-journal.org" (current-time)) journal-dir))
+(defun get-notes-file-yearly ()
+  "Return path to current year's note file."
+  (expand-file-name (format-time-string "%Y-notes.org" (current-time)) notes-dir))
+
+(setq org-agenda-files
+      (list org-todo-file)) ; add journal-dir only if you want journal TODOs in agenda
+
+;; TODO states
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+
+(setq org-capture-templates
+      `(("j" "Journal" entry
+         (file+olp+datetree ,(get-journal-file-yearly))
+         "* %<%H:%M>\n%?\n")
+        ("n" "Note" entry
+         (file+olp+datetree ,(get-notes-file-yearly))
+         "* %<%H:%M>\n%?\n")
+        ("t" "Todo" entry
+         (file ,org-todo-file)
+         "* TODO %?\n  %U\n")
+        ))
+
+;; Navigation functions
+(defun journal-today ()
+  "Open or create today's journal entry."
   (interactive)
-  (if (and (eq major-mode 'org-mode)
-           (string-prefix-p (expand-file-name my-notes-dir) (or buffer-file-name "")))
-      (switch-to-prev-buffer)
-    (let ((notes-file (my-project-notes-file)))
-      (unless (file-exists-p notes-file)
-        (make-directory (file-name-directory notes-file) t))
-      (find-file notes-file))))
+  (org-capture nil "j"))
 
-(defun my-file-notes-file ()
-  "Path to notes file for current file, namespaced by project."
-  (when-let* ((project (project-current))
-              (root    (project-root project))
-              (relpath (file-relative-name buffer-file-name root)))
-    ;; e.g. ~/org/project-notes/my-rust-project/src/main.rs.notes.org
-    (expand-file-name
-     (concat
-      (file-name-nondirectory (directory-file-name root)) ; project name
-      "/"
-      relpath
-      ".notes.org")
-     my-notes-dir)))
-
-(defun my-open-file-notes ()
-  "toggle between file notes and previous buffer."
+(defun journal-recent ()
+  "Jump to most recent (current year) journal file."
   (interactive)
-  (if (and (eq major-mode 'org-mode)
-           (string-prefix-p (expand-file-name my-notes-dir) (or buffer-file-name "")))
-      (switch-to-prev-buffer)
-    (find-file (my-file-notes-file))))
+  (find-file (get-journal-file-yearly)))
+(defun notes-recent ()
+  "Jump to most recent (current year) journal file."
+  (interactive)
+  (find-file (get-notes-file-yearly)))
+(defun journal-list ()
+  "List all journal files for browsing."
+  (interactive)
+  (dired journal-dir))
+(defun notes-list ()
+  "List all notes files for browsing."
+  (interactive)
+  (dired notes-dir))
+
+;; ====================================================
 
 ;; ------------------
 ;; Terminal and help
 ;; ------------------
 ;; persists buffer after exit
 ;; use spc b d once done
-(use-package eat
-  :ensure (eat :host nongnu))
+(use-package eat) ; auto-installs from nongnu.elpa
 
 (use-package helpful
   :defer t
@@ -815,7 +792,6 @@ when called, prompt for dir or default to current directory"
   (setq xref-show-definitions-function #'xref-show-definitions-completing-read) ;; use completing-read
 )
 
-
 ;; ------------------
 ;; Keybindings (Doom-style)
 ;; ------------------
@@ -828,21 +804,23 @@ when called, prompt for dir or default to current directory"
     :global-prefix "M-SPC")
 
   (my/leader-keys
-    ;; activities
+
+    ;; activity
     "a"  '(:ignore t :which-key "activities")
-    "aa" '(activities-switch :which-key "switch")
+    "aA" '(activities-switch :which-key "resume")               ;; resume from suspended
+    "aa" '(activities-resume :which-key "switch")
     "ab" '(activities-switch-buffer :which-key "switch buffer")
     "ad" '(activities-define :which-key "define")               ;; define activity name
     "ak" '(activities-kill :which-key "kill")
     "an" '(activities-new :which-key "new")
     "ag" '(activities-revert :which-key "revert")               ;; revert to original
-    "ar" '(activities-resume :which-key "resume")               ;; resume from suspended
     "as" '(activities-suspend :which-key "suspend")             ;; save and exit activity (close tab)
 
     ;; buffer
     "b"  '(:ignore t :which-key "buffers")
     "bb" '(consult-buffer :which-key "switch buffer")            ;; find file in opened buffers
     "bd" '(kill-current-buffer :which-key "kill buffer")
+    "bD" '(delete-file :which-key "delete file")
     "bc" '(clean-buffer-list :which-key "clean unused buffers")
     "bC" '(close-unused-buffers :which-key "clean buffers not visible")
     "bn" '(next-buffer :which-key "next buffer")
@@ -863,6 +841,7 @@ when called, prompt for dir or default to current directory"
     "df" '(find-name-dired :which-key "get files by name")       ;; find file, in specific directory
     "dg" '(find-grep-dired :which-key "get files by grep")       ;; grep file, in specific directory
     "do" '(dired-other-frame :which-key "dired other frame")     ;; open dired in another frame
+    "dz" '(emacs-zoxide :which-key "zoxide")
 
     ;; eat terminal
     "e"  '(:ignore t :which-key "terminal")
@@ -888,33 +867,51 @@ when called, prompt for dir or default to current directory"
     "g"  '(:ignore t :which-key "git")
     "gs" '(magit-status :which-key "status")
 
-    ;; harpoon
-    "h"  '(:ignore t :which-key "harpoon")
-    "ha" '(harpoon-add-file :which-key "add file")
-    "hh" '(harpoon-toggle-quick-menu :which-key "menu")
-    "hH" '(harpoon-quick-menu-hydra :which-key "menu")
-    "hn" '(harpoon-go-to-next :which-key "next")
-    "hp" '(harpoon-go-to-prev :which-key "previous")
-    "h1" '(harpoon-go-to-1 :which-key "file 1")
-    "h2" '(harpoon-go-to-2 :which-key "file 2")
-    "h3" '(harpoon-go-to-3 :which-key "file 3")
-    "h4" '(harpoon-go-to-4 :which-key "file 4")
-    "h5" '(harpoon-go-to-5 :which-key "file 5")
+    ;; Buffer (arrow.el)
+    ","  '(:ignore t :which-key "marks")
+    ",," '(arrow-show :which-key "show")
+    ",a" '(arrow-add          :which-key "add")
+    ",j" '(arrow-jump-buffer  :which-key "add")
+    ",d" '(arrow-delete       :which-key "delete")
+    ",c" '(arrow-clear-all    :which-key "clear all")
+    ",n" '(arrow-next-line    :which-key "next")
+    ",p" '(arrow-prev-line    :which-key "prev")
+    ;; Project layer
+    "."  '(:ignore t :which-key "project marks")
+    ".." '(arrow-project-show   :which-key "show")
+    ".j" '(arrow-jump-project   :which-key "show")
+    ".a" '(arrow-project-add    :which-key "add")
+    ".d" '(arrow-project-delete :which-key "delete")
+    ".n" '(arrow-project-next   :which-key "next")
+    ".p" '(arrow-project-prev   :which-key "prev")
+    ;; Global layer
+    "/" '(:ignore t :which-key "global")
+    "//" '(arrow-global-show    :which-key "sow")
+    "/a" '(arrow-global-add    :which-key "add")
+    "/j" '(arrow-jump-global    :which-key "add")
+    "/d" '(arrow-global-delete :which-key "delete")
+    "/c" '(arrow-global-clear-all :which-key "clear all")
+    "/n" '(arrow-global-next   :which-key "next")
+    "/p" '(arrow-global-prev   :which-key "prev")
+    ;; arrow-Org
+    "oo" '(arrow-org-list-project-notes :which-key "org list notes")
+    "of" '(arrow-org-open-file          :which-key "org for this file")
+    "op" '(arrow-org-open-project       :which-key "org for this project")
+    ;; Unified
+    ";" '(arrow-jump :which-key "arrow global")
 
-    ;; bookmarks
-    "m"  '(:ignore t :which-key "bookmarks")
-    "mm" '(consult-bookmark :which-key "jump to bookmark")
-    "ms" '(bookmark-set :which-key "set bookmark")
-    "md" '(bookmark-delete :which-key "delete bookmark")
-    "mz" '(emacs-zoxide :which-key "zoxide")
+    ;; journal
+    "j"  '(:ignore t :which-key "journal")
+    "jt" '(journal-today :which-key "most recent")
+    "jr" '(journal-recent :which-key "most recent")
+    "jn" '(notes-recent :which-key "most recent")
+    "jl" '(journal-list :which-key "journal list")
 
     ;; org
     "o"  '(:ignore t :which-key "org")
     "oa" '(org-agenda :which-key "agenda")
     "oc" '(org-capture :which-key "capture")
-    "ol" '(org-store-link :which-key "current file link")
-    "op" '(my-open-project-notes :which-key "org for this project")
-    "of" '(my-open-file-notes :which-key "org for this file")
+    "ot" '(org-tags-view :which-key "org by tags")
     "or" '(:ignore t :which-key "remark")
     "orr" '(org-remark-mode :which-key "enable highlights")
     "orh" '(org-remark-mark :which-key "highlight")
@@ -932,17 +929,6 @@ when called, prompt for dir or default to current directory"
     "pd" '(project-dired :which-key "project dired")             ;; open dired at project root
     "pk" '(project-kill-buffers :which-key "kill project buffers") ;; open dired at project root
     "pe" '(project-eshell :which-key "project eshell")
-
-    ;; registers
-    "r"  '(:ignore t :which-key "registers")
-    "rs" '(copy-to-register :which-key "save region to register")
-    "rp" '(point-to-register :which-key "save point position")
-    "rn" '(number-to-register :which-key "save number")
-    "r+" '(increment-register :which-key "increment register")
-    "ri" '(insert-register :which-key "insert register")
-    "rj" '(jump-to-register :which-key "jump to register")
-    "rl" '(list-registers :which-key "list registers")
-    "rr" '(view-register :which-key "view register")
 
     ;; tree
     "t"  '(:ignore t :which-key "tree")
@@ -984,6 +970,20 @@ when called, prompt for dir or default to current directory"
    "C-k" 'evil-window-up
    "C-l" 'evil-window-right))
 
+
+(use-package arrow
+  :vc (:url "https://github.com/vmargb/arrow.el")
+  :config
+  (arrow-auto-mode)
+  (setq arrow-org-directory "~/org/arrow-notes/")
+  (setq arrow-org-window-behavior 'same-window) ;; 'same-window, 'other-window, 'other-frame
+  (setq arrow-project-modeline t)
+  (setq arrow-preview-context 0))
+
+(with-eval-after-load 'doom-modeline
+  (doom-modeline-def-segment arrow-project
+    (arrow-project-modeline-string))
+  (doom-modeline-add-segment 'arrow-project 'misc-info :after 'main))
 
 (provide 'init)
 ;;; init.el ends here
