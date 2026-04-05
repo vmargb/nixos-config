@@ -1,7 +1,7 @@
 require('plugins')
 require('settings')
-require('mappings')
 require('autopairs')
+require('mappings')
 require('lualine-cfg')
 require('other')
 require('plugins.noice')

@@ -1,4 +1,4 @@
--- Bootstrap lazy.nvim
+-- Booestrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = "https://github.com/folke/lazy.nvim.git"
@@ -21,25 +21,40 @@ vim.g.maplocalleader = "\\"
 local plugins = {
     --> General
     'windwp/nvim-autopairs',
-    { 
-      'nvim-treesitter/nvim-treesitter', 
-      build = ':TSUpdate',
-      config = function()
-        require('nvim-treesitter.configs').setup {
-          ensure_installed = { "c", "cpp", "lua", "python", "vim", "rust" },
-          sync_install = false,
-          auto_install = true,
-          highlight = {
+    {
+      "nvim-treesitter/nvim-treesitter",
+      build = ":TSUpdate",
+      dependencies = {
+        "nvim-treesitter/nvim-treesitter-textobjects",
+      },
+      opts = {
+        ensure_installed = { "c", "cpp", "lua", "python", "vim", "rust" },
+        sync_install = false,
+        auto_install = true,
+        highlight = {
+          enable = true,
+          disable = function(_, buf)
+            local uv = vim.uv or vim.loop
+            local max_filesize = 100 * 1024
+            local ok, stats = pcall(uv.fs_stat, vim.api.nvim_buf_get_name(buf))
+            return ok and stats and stats.size > max_filesize
+          end,
+          additional_vim_regex_highlighting = false,
+        },
+        indent = { enable = true },
+        textobjects = {
+          select = {
             enable = true,
-            disable = function(lang, buf)
-              local max_filesize = 100 * 1024
-              local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-              return ok and stats and stats.size > max_filesize
-            end,
-            additional_vim_regex_highlighting = false,
+            lookahead = true,
+            keymaps = {
+              ["af"] = "@function.outer",
+              ["if"] = "@function.inner",
+              ["ac"] = "@class.outer",
+              ["ic"] = "@class.inner",
+            },
           },
-        }
-      end
+        },
+      },
     },
     {
       "folke/flash.nvim",
@@ -175,39 +190,47 @@ local plugins = {
 
     --> Mason + lsp stuff
     {
-      "williamboman/mason.nvim",
-      config = function()
-        require("mason").setup()
-      end
-    },
-    {
       "mason-org/mason-lspconfig.nvim",
       dependencies = {
-        "mason.nvim",
+        "mason-org/mason.nvim",
         "neovim/nvim-lspconfig",
       },
       opts = {
         ensure_installed = { "lua_ls", "rust_analyzer", "clangd" },
       },
-      config = function()
-        require("mason-lspconfig").setup_handlers {
-          function(server_name)
-            require("lspconfig")[server_name].setup {}
-          end,
-        }
+      config = function(_, opts)
+        require("mason").setup()
+        require("mason-lspconfig").setup(opts)
+
+        local lspconfig = require("lspconfig")
+
+        -- Setup servers manually (new way)
+        for _, server in ipairs(opts.ensure_installed) do
+          if server == "lua_ls" then
+            lspconfig.lua_ls.setup({
+              settings = {
+                Lua = {
+                  diagnostics = { globals = { "vim" } },
+                  workspace = { checkThirdParty = false },
+                  telemetry = { enable = false },
+                },
+              },
+            })
+          else
+            lspconfig[server].setup({})
+          end
+        end
       end,
     },
     {
-      "neovim/nvim-lspconfig",
+      "SmiteshP/nvim-navbuddy",
       dependencies = {
-        {
-          "SmiteshP/nvim-navbuddy",
-          dependencies = {
-            "SmiteshP/nvim-navic",
-            "MunifTanjim/nui.nvim"
-          },
-          opts = { lsp = { auto_attach = true } }
-        }
+        "SmiteshP/nvim-navic",
+        "MunifTanjim/nui.nvim",
+        "neovim/nvim-lspconfig",
+      },
+      opts = {
+        lsp = { auto_attach = true },
       },
     },
     {
@@ -239,19 +262,6 @@ local plugins = {
       },
       lazy = false,
       priority = 100,
-    },
-    {
-      "davmacario/nvim-quicknotes",
-      keys = { "<leader>qn" },
-      cmd = { "Quicknotes", "QuicknotesClear", "QuicknotesCleanup" }, -- Lazy-load the plugin
-      -- <<<
-
-      config = function()
-        require("nvim-quicknotes").setup()
-
-        -- Custom keymap
-        vim.keymap.set("n", "<leader>qn", vim.cmd.Quicknotes, { desc = "Open quicknotes" })
-      end,
     },
 
     --> Misc (load last)
