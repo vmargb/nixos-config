@@ -1,38 +1,27 @@
-# A Bird's-eye view
+# Structure
 
-My modular NixOS, Flakes & Home Manager config with multiple hosts. This setup uses Niri, Sway, Waybar, Fuzzel as well as other opinionated choices that I personally use. It is easily [Expandable](#expanding).
+Dendritic NixOS, Flakes & Home Manager config with multiple hosts. This setup uses Niri & DMS as well as other opinionated choices that I personally use, and is easily expandable.
 
-```
-nix-config/
-├─ flake.nix                      ← Root entry
-├─ common/
-│  ├─ system/
-│  │  └─ base.nix                 ← config for every host
-│  └─ home/
-│     ├─ default.nix
-│     ├─ editors.nix              ← Emacs w/ evil > Neovim
-│     ├─ foot.nix                 ← To balance out the Emacs bloat
-│     ├─ shells.nix
-│     ├─ niri.nix
-│     ├─ waybar.nix
-│     ├─ fuzzel.nix
-│     ├─ mako.nix
-│     ├─ greetd.nix
-│     └─ dev/                     ← Web-dev, Android & all your esoteric langs
-├─ dotfiles/                      ← (symlinked by dotfiles.nix)
-│  ├─ emacs/
-│  ├─ nvim/
-│  ├─ niri/
-└─ hosts/                         ← Per-machine overrides
-   ├─ laptop/
-   │  ├─ configuration.nix        ← System-level config
-   │  └─ home.nix                 ← User-level config
-   ├─ desktop/
-   │  ├─ configuration.nix
-   │  └─ home.nix
-   └─ server/
-      ├─ configuration.nix
-      └─ home.nix
+```sh
+.
+├── flake.nix
+├── hosts
+│   ├── desktop
+│   │   └── default.nix
+│   └── laptop
+│       └── default.nix
+├── modules
+│   ├── emacs/
+│   ├── nvim/
+│   ├── core.nix
+│   ├── default.nix
+│   ├── desktop.nix
+│   ├── dev.nix
+│   ├── emacs.nix
+│   ├── neovim.nix
+│   ├── shell.nix
+│   ├── theme.nix
+│   └── vcs.nix
 ```
 
 ## 🛠️ Installation
@@ -54,21 +43,9 @@ adjust `hostname` to match one of the hosts(or create your own)
 nix flake update
 ```
 
-## Expanding
-
-### Adding a New Host
-1. Create a directory under `hosts/` with `configuration.nix`, `home.nix` and your generated `hardware-configuration.nix`
-2. Import necessary common modules in both configuration files
-3. Add the host to `flake.nix` with: `{host} = mkHost { name = "{host}"; system = "{system}"; }`
-
-### Creating New Modules
-1. Add Nix module in `common/home/` and import it into your `home.nix`
-
-**Note:** If you don't want to use Nix, add the config to `dotfiles/`, `dotfiles.nix` will automatically handle the symlink for you on the next rebuild.
-
 ## 📁 Dotfiles
-You'll notice that some dotfiles are configured with Nix in `common/home/`,
-while others live in `dotfiles/`
+You'll notice that some dotfiles are configured with Nix
+while others are symlinked to `~/.config/`
 
 These are intentionally split apart:
 - **Nix:** Modules that have simple configs(like toml) or require runtime changes (like stylix)

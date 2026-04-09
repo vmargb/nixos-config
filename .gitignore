@@ -1,2 +1,4 @@
-common/secrets/*
-!common/secrets/.keep
+.DS_Store
+**/.DS_Store
+._.DS_Store
+**/_._.DS_Store

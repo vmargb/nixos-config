@@ -1,32 +1,39 @@
 {
-  description = "vmargb's NixOS + Home Manager config";
+  description = "vmargb's NixOS Dendritic Configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    niri.url = "github:sodiboo/niri-flake";
-    stylix.url = "github:nix-community/stylix";
-    stylix.inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    
+    stylix.url = "github:danth/stylix";
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, stylix, ... }: {
+  outputs = { self, nixpkgs, home-manager, stylix, ... }@inputs: {
     nixosConfigurations = {
-      
-      laptop = nixpkgs.lib.nixosSystem {
+      macbook = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
-          ./hosts/laptop/configuration.nix
+          # Host specific configuration
+          ./hosts/macbook
+
+          # Home Manager module integration
           home-manager.nixosModules.home-manager
-          stylix.nixosModules.stylix
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.users.vmargb = import ./hosts/laptop/home.nix;
             home-manager.extraSpecialArgs = { inherit inputs; };
-            home-manager.backupFileExtension = "hm-bak";
           }
+
+          # External Core Modules
+          stylix.nixosModules.stylix
+
+          # Dendritic Features
+          ./modules
         ];
       };
 
@@ -34,35 +41,20 @@
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
-          ./hosts/desktop/configuration.nix
-          home-manager.nixosModules.home-manager
-          stylix.nixosModules.stylix
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.vmargb = import ./hosts/desktop/home.nix;
-            home-manager.extraSpecialArgs = { inherit inputs; };
-            home-manager.backupFileExtension = "hm-bak";
-          }
-        ];
-      };
+          ./hosts/desktop
 
-      server = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        specialArgs = { inherit inputs; };
-        modules = [
-          ./hosts/server/configuration.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.users.vmargb = import ./hosts/server/home.nix;
             home-manager.extraSpecialArgs = { inherit inputs; };
-            home-manager.backupFileExtension = "hm-bak";
           }
+
+          stylix.nixosModules.stylix
+
+          ./modules
         ];
       };
-      
     };
   };
 }
